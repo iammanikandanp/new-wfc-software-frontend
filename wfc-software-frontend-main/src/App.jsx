@@ -1,20 +1,138 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { Navbar } from "./utilis/Navbar.jsx";
-import { Register } from "./compontes/Register.jsx";
-import { UserDetails } from "./compontes/UserDetails.jsx";
-import Update from "./compontes/Update.jsx";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+
+// Pages
+import Login from "./pages/Login";
+import Register from "./compontes/Register";
+import Dashboard from "./pages/Dashboard";
+import Members from "./pages/Members";
+import AddMember from "./pages/AddMember";
+import Payments from "./pages/Payments";
+import Attendance from "./pages/Attendance";
+import DietPlans from "./pages/DietPlans";
+import AddDietPlan from "./pages/AddDietPlan";
+import Training from "./pages/Training";
+import AddTrainer from "./pages/AddTrainer";
+import Reports from "./pages/Reports";
+import About from "./pages/About";
+
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem("token");
+  return token ? children : <Navigate to="/login" />;
+};
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    setIsAuthenticated(!!token);
+  }, []);
+
   return (
     <Router>
-      <Navbar />
       <Routes>
-        <Route path="/" element={<UserDetails />} />
+        {/* Auth Routes */}
+        <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/update/:id" element={<Update />} />
+
+        {/* Protected Routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/members"
+          element={
+            <ProtectedRoute>
+              <Members />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/members/new"
+          element={
+            <ProtectedRoute>
+              <AddMember />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/payments"
+          element={
+            <ProtectedRoute>
+              <Payments />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/attendance"
+          element={
+            <ProtectedRoute>
+              <Attendance />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/diet-plans"
+          element={
+            <ProtectedRoute>
+              <DietPlans />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/diet-plans/new"
+          element={
+            <ProtectedRoute>
+              <AddDietPlan />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/training"
+          element={
+            <ProtectedRoute>
+              <Training />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/training/new"
+          element={
+            <ProtectedRoute>
+              <AddTrainer />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute>
+              <Reports />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/about"
+          element={
+            <ProtectedRoute>
+              <About />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Default Route */}
+        <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />
       </Routes>
     </Router>
   );
 }
 
 export default App;
+

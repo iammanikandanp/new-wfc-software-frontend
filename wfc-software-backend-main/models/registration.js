@@ -45,4 +45,4 @@ images: {
 
 },{ timestamps: true });
 
-export const Registration = mongoose.model("Registration", registerSchema);
+export const Registration = mongoose.model("Registra", registerSchema);

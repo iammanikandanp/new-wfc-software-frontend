@@ -2,26 +2,52 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import { Upload, X } from "lucide-react";
 
 export const Register = () => {
   const [step, setStep] = useState(1);
   const [bmiStatus, setBmiStatus] = useState("");
-  const [bpStatus, setBpStatus] = useState("");
-  const [sugarStatus, setSugarStatus] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imagePreviews, setImagePreviews] = useState({
+    frontBodyImage: null,
+    sideBodyImage: null,
+    backBodyImage: null
+  });
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    name: "", age: "", gender: "", emails: "",
-    height: "", weight: "", bmi: "",
-    waist: "", neck: "", hip: "", 
-    bloodGroup: "", issues: "", description: "",
-    bloodPressure: "", sugarLevel: "", 
-    packages: "", duration: "", services: "",
-    personalTraining: "", customWorkout: "", customDiet: "", rehabTherapy: "",
-    profession: "", phone: "", address: "", pincode: "", startDate: "", endDate: "",
-
-    profileImage: null,
+    // Step 1: Basic Information
+    fullName: "",
+    age: "",
+    dateOfBirth: "",
+    phoneNumber: "",
+    email: "",
+    emergencyContact: "",
+    medicalConditions: "",
+    
+    // Step 2: Body Measurements
+    gender: "",
+    height: "",
+    weight: "",
+    waist: "",
+    hip: "",
+    chest: "",
+    arm: "",
+    thigh: "",
+    
+    // Calculated fields
+    bmi: "",
+    waistHipRatio: "",
+    fitnessCategory: "",
+    
+    // Step 3: Address Details
+    profession: "",
+    address: "",
+    city: "",
+    state: "",
+    pincode: "",
+    
+    // Step 4: Progress Photos
     frontBodyImage: null,
     sideBodyImage: null,
     backBodyImage: null
@@ -30,123 +56,32 @@ export const Register = () => {
   useEffect(() => {
     const { height, weight } = formData;
     if (height && weight) {
-      const h = parseFloat(height) / 100;
+      const h = parseFloat(height) / 100; // convert cm to meters
       const w = parseFloat(weight);
       const bmi = w / (h * h);
       const bmiVal = bmi.toFixed(1);
-      let status = "";
-      if (bmi < 18.5) status = "Underweight";
-      else if (bmi < 24.9) status = "Normal";
-      else if (bmi < 29.9) status = "Overweight";
-      else status = "Obese";
-      setFormData(prev => ({ ...prev, bmi: bmiVal }));
-      setBmiStatus(status);
+      let category = "";
+      if (bmi < 18.5) category = "Underweight";
+      else if (bmi < 24.9) category = "Normal";
+      else if (bmi < 29.9) category = "Overweight";
+      else category = "Obese";
+      setFormData(prev => ({ ...prev, bmi: bmiVal, fitnessCategory: category }));
+      setBmiStatus(category);
     }
   }, [formData.height, formData.weight]);
 
   useEffect(() => {
-    const log10 = (val) => Math.log(val) / Math.LN10;
-    const { gender, height, waist, neck, hip, age, bmi } = formData;
-
-    const allCommon = gender && height && waist && neck;
-    let fat = null;
-
-    if (allCommon) {
-      const h = parseFloat(height);
-      const w = parseFloat(waist);
-      const n = parseFloat(neck);
-
-      if (gender === "Male") {
-        fat = (
-          495 / (1.0324 - 0.19077 * log10(w - n) + 0.15456 * log10(h)) - 450
-        ).toFixed(2);
-      }
-
-      if (gender === "Female" && hip) {
-        const hp = parseFloat(hip);
-        fat = (
-          495 /
-          (1.29579 - 0.35004 * log10(w + hp - n) + 0.221 * log10(h)) - 450
-        ).toFixed(2);
-      }
+    const { waist, hip } = formData;
+    if (waist && hip) {
+      const waistHipRatio = (parseFloat(waist) / parseFloat(hip)).toFixed(2);
+      setFormData(prev => ({ ...prev, waistHipRatio }));
     }
-
-    if ((!fat || isNaN(fat)) && bmi && age && gender) {
-      const bmiVal = parseFloat(bmi);
-      const ageVal = parseFloat(age);
-      fat =
-        gender === "Male"
-          ? (1.20 * bmiVal + 0.23 * ageVal - 16.2).toFixed(2)
-          : (1.20 * bmiVal + 0.23 * ageVal - 5.4).toFixed(2);
-    }
-
-    if (fat) {
-      setFormData((prev) => ({ ...prev, bodyFat: fat }));
-    }
-  }, [formData.gender, formData.height, formData.waist, formData.neck, formData.hip, formData.bmi, formData.age]);
-
-  useEffect(() => {
-    if (formData.startDate && formData.duration) {
-      const start = new Date(formData.startDate);
-      const durationMonths = parseInt(formData.duration, 10);
-      const end = new Date(start.setMonth(start.getMonth() + durationMonths));
-      const formattedEnd = end.toISOString().split('T')[0];
-      setFormData(prev => ({ ...prev, endDate: formattedEnd }));
-    }
-  }, [formData.startDate, formData.duration]);
-
-  useEffect(() => {
-    const { bloodPressure, sugarLevel, age, gender } = formData;
-
-    // Blood Pressure Status
-    if (bloodPressure) {
-      const [systolic, diastolic] = bloodPressure.split("/").map(Number);
-      if (systolic && diastolic) {
-        if (systolic < 90 || diastolic < 60) setBpStatus("Low");
-        else if (systolic <= 120 && diastolic <= 80) setBpStatus("Normal");
-        else if (systolic <= 139 || diastolic <= 89) setBpStatus("Elevated");
-        else setBpStatus("High");
-      } else {
-        setBpStatus("Invalid");
-      }
-    } else {
-      setBpStatus("");
-    }
-
-    // Sugar Level Status
-    if (sugarLevel && age && gender) {
-      const sugar = parseFloat(sugarLevel);
-      if (sugar < 70) setSugarStatus("Low");
-      else if (sugar <= 99) setSugarStatus("Normal");
-      else if (sugar <= 125) setSugarStatus("Pre-Diabetic");
-      else setSugarStatus("High");
-    } else {
-      setSugarStatus("");
-    }
-  }, [formData.bloodPressure, formData.sugarLevel, formData.age, formData.gender]);
+  }, [formData.waist, formData.hip]);
 
   const getCurrentFields = () => {
-    switch (step) {
-      case 1:
-        return ["name", "age", "gender", "emails"];
-      case 2:
-        return ["height", "weight", "bmi", "waist", "neck", ...(formData.gender === "Female" ? ["hip"] : [])];
-      case 3:
-        return formData.issues === "Mental" || formData.issues === "Physical"
-          ? ["bloodGroup", "issues", "description", "bloodPressure", "sugarLevel"]
-          : ["bloodGroup", "issues", "bloodPressure", "sugarLevel"];
-      case 4:
-        return ["profession", "phone", "address", "pincode"];
-      case 5:
-        return [
-          "packages", "duration", "startDate", "services",
-          ...(formData.services === "Yes"
-            ? ["personalTraining", "customWorkout", "customDiet", "rehabTherapy"]
-            : [])
-        ];
-      default:
-        return [];
-    }
+    // All fields are optional, so we just return empty array
+    // This allows users to proceed without filling all fields
+    return [];
   };
 
   const handleChange = (e) => {
@@ -158,17 +93,35 @@ export const Register = () => {
     const { name, files } = e.target;
     if (files && files[0]) {
       setFormData(prev => ({ ...prev, [name]: files[0] }));
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreviews(prev => ({ ...prev, [name]: reader.result }));
+      };
+      reader.readAsDataURL(files[0]);
     }
+  };
+
+  const removeImage = (fieldName) => {
+    setFormData(prev => ({ ...prev, [fieldName]: null }));
+    setImagePreviews(prev => ({ ...prev, [fieldName]: null }));
   };
 
   const isValidPhone = phone => /^\d{10}$/.test(phone);
 
   const handleNext = () => {
-    const currentFields = getCurrentFields();
-    const isValid = currentFields.every(field => formData[field]?.toString().trim() !== "");
-    if (!isValid) return toast.error("Please fill all required fields");
-    if (step === 4 && !isValidPhone(formData.phone)) return toast.error("Invalid 10-digit phone number");
-    if (step < 5) setStep(prev => prev + 1);
+    // Validate phone numbers only if they are filled
+    if (step === 1) {
+      if (formData.phoneNumber && !isValidPhone(formData.phoneNumber)) {
+        return toast.error("Invalid 10-digit phone number");
+      }
+      if (formData.emergencyContact && formData.emergencyContact.trim() && !isValidPhone(formData.emergencyContact)) {
+        return toast.error("Invalid emergency contact phone number");
+      }
+    }
+    
+    if (step < 4) setStep(prev => prev + 1);
   };
 
   const handleBack = () => {
@@ -180,18 +133,50 @@ export const Register = () => {
     setIsSubmitting(true);
     try {
       const data = new FormData();
-      for (const key in formData) {
-        data.append(key, formData[key]);
-      }
+      
+      // Map the form data to backend expected fields
+      data.append('name', formData.fullName);
+      data.append('age', formData.age);
+      data.append('gender', formData.gender);
+      data.append('emails', formData.email);
+      data.append('phone', formData.phoneNumber);
+      data.append('profession', formData.profession);
+      data.append('address', `${formData.address}, ${formData.city}, ${formData.state}`); // Combine address fields
+      data.append('pincode', formData.pincode);
+      data.append('height', formData.height);
+      data.append('weight', formData.weight);
+      data.append('bmi', formData.bmi || '');
+      data.append('waist', formData.waist);
+      data.append('hip', formData.hip);
+      data.append('description', formData.medicalConditions || 'None'); // Map medical conditions to description
+      
+      // Add images
+      if (formData.frontBodyImage) data.append('frontBodyImage', formData.frontBodyImage);
+      if (formData.sideBodyImage) data.append('sideBodyImage', formData.sideBodyImage);
+      if (formData.backBodyImage) data.append('backBodyImage', formData.backBodyImage);
+      
+      // Add required fields with defaults
+      data.append('bloodGroup', 'O+');
+      data.append('issues', 'None');
+      data.append('packages', 'Basic');
+      data.append('duration', '1');
+      data.append('services', 'No');
+      data.append('startDate', new Date().toISOString().split('T')[0]);
+      data.append('endDate', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]); // 30 days from now
+      data.append('bloodPressure', '120/80');
+      data.append('sugarLevel', '100');
+      data.append('neck', '30'); // Default neck measurement
+      data.append('bodyFat', '15'); // Default body fat percentage
 
       const response = await axios.post("https://wfc-backend-software.onrender.com/api/v1/register", data, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
       if (response) toast.success(response.data.message);
-      navigate("/");
-    } catch {
-      toast.error("Submission failed!");
+      navigate("/dashboard");
+    } catch (error) {
+      console.error('Submission error:', error);
+      toast.error(error.response?.data?.message || "Submission failed!");
     } finally {
       setIsSubmitting(false);
     }
@@ -202,46 +187,56 @@ export const Register = () => {
       case 1:
         return (
           <>
-            <h3 className="text-gray-600 font-semibold text-2xl sm:text-md ">Basic Details</h3>
-            <Input label="Name" name="name" value={formData.name} onChange={handleChange} />
-            <Input label="Age" name="age" value={formData.age} onChange={handleChange} type="number" />
-            <Select label="Gender" name="gender" value={formData.gender} onChange={handleChange} options={["Male", "Female", "Other"]} />
-            <Input label="Email" name="emails" value={formData.emails} onChange={handleChange} type="email" />
+            <h3 className="text-gray-800 font-bold text-2xl sm:text-xl mb-6">Basic Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Full Name" name="fullName" value={formData.fullName} onChange={handleChange} placeholder="Enter your full name" />
+              <Input label="Age" name="age" value={formData.age} onChange={handleChange} type="number" placeholder="Enter your age" />
+              <Input label="Date of Birth" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleChange} type="date" />
+              <Input label="Phone Number" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} type="tel" placeholder="10-digit phone number" />
+              <Input label="Email" name="email" value={formData.email} onChange={handleChange} type="email" placeholder="Enter your email" />
+              <Input label="Emergency Contact" name="emergencyContact" value={formData.emergencyContact} onChange={handleChange} type="tel" placeholder="Emergency contact number" required={false} />
+            </div>
+            <div className="mt-4">
+              <Input label="Medical Conditions" name="medicalConditions" value={formData.medicalConditions} onChange={handleChange} placeholder="List any medical conditions or leave blank" required={false} isTextArea={true} />
+            </div>
           </>
         );
       case 2:
         return (
           <>
-            <h3 className="text-gray-600 font-semibold text-2xl sm:text-md">Weight Details</h3>
-            <Input label="Height (cm)" name="height" value={formData.height} onChange={handleChange} type="number" />
-            <Input label="Weight (kg)" name="weight" value={formData.weight} onChange={handleChange} type="number" />
-            <Input label="BMI" name="bmi" value={formData.bmi} onChange={handleChange} />
-            <Input label="Waist (cm)" name="waist" value={formData.waist} onChange={handleChange} type="number" />
-            <Input label="Neck (cm)" name="neck" value={formData.neck} onChange={handleChange} type="number" />
-            {formData.gender === "Female" && (
-              <Input label="Hip (cm)" name="hip" value={formData.hip} onChange={handleChange} type="number" />
-            )}
-            <InputFile label="Profile Photo" name="profileImage" onChange={handleImageChange} />
-            <InputFile label="Front Body Photo" name="frontBodyImage" onChange={handleImageChange} />
-            <InputFile label="Side Body Photo" name="sideBodyImage" onChange={handleImageChange} />
-            <InputFile label="Back Body Photo" name="backBodyImage" onChange={handleImageChange} />
+            <h3 className="text-gray-800 font-bold text-2xl sm:text-xl mb-6">Body Measurements</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Select label="Gender" name="gender" value={formData.gender} onChange={handleChange} options={["Male", "Female", "Other"]} />
+              <Input label="Height (cm)" name="height" value={formData.height} onChange={handleChange} type="number" placeholder="e.g., 180" />
+              <Input label="Weight (kg)" name="weight" value={formData.weight} onChange={handleChange} type="number" placeholder="e.g., 75" />
+              <Input label="Waist (cm)" name="waist" value={formData.waist} onChange={handleChange} type="number" placeholder="e.g., 85" />
+              <Input label="Hip (cm)" name="hip" value={formData.hip} onChange={handleChange} type="number" placeholder="e.g., 95" />
+              <Input label="Chest (cm)" name="chest" value={formData.chest} onChange={handleChange} type="number" placeholder="e.g., 100" />
+              <Input label="Arm (cm)" name="arm" value={formData.arm} onChange={handleChange} type="number" placeholder="e.g., 32" />
+              <Input label="Thigh (cm)" name="thigh" value={formData.thigh} onChange={handleChange} type="number" placeholder="e.g., 55" />
+            </div>
+            
             {formData.bmi && (
-              <div className="flex items-center justify-between mt-1">
-                <p className={`text-sm font-medium ${bmiStatus === "Underweight"
-                  ? "text-blue-500"
-                  : bmiStatus === "Normal"
-                    ? "text-green-500"
-                    : bmiStatus === "Overweight"
-                      ? "text-yellow-500"
-                      : "text-red-500"
-                  }`}>
-                  BMI Status: {bmiStatus}
-                </p>
-                {formData.bodyFat && (
-                  <p className="text-sm font-medium text-purple-500">
-                    Body Fat: {formData.bodyFat}%
-                  </p>
-                )}
+              <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                <h4 className="font-bold text-gray-800 mb-3">📊 Auto Calculations</h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <div className="bg-white p-3 rounded-lg">
+                    <p className="text-xs text-gray-600">BMI</p>
+                    <p className="text-lg font-bold text-gray-800">{formData.bmi}</p>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg col-span-2 md:col-span-1">
+                    <p className="text-xs text-gray-600">Fitness</p>
+                    <p className={`text-lg font-bold ${bmiStatus === "Normal" ? "text-green-600" : bmiStatus === "Underweight" ? "text-blue-600" : "text-orange-600"}`}>
+                      {bmiStatus}
+                    </p>
+                  </div>
+                  {formData.waistHipRatio && (
+                    <div className="bg-white p-3 rounded-lg">
+                      <p className="text-xs text-gray-600">Waist-Hip</p>
+                      <p className="text-lg font-bold text-gray-800">{formData.waistHipRatio}</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </>
@@ -249,62 +244,46 @@ export const Register = () => {
       case 3:
         return (
           <>
-            <h3 className="text-gray-600 font-semibold text-2xl sm:text-md">Medical Details</h3>
-            <Select label="Blood Group" name="bloodGroup" value={formData.bloodGroup} onChange={handleChange}
-              options={["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"]} />
-            <Select label="Health Issues" name="issues" value={formData.issues} onChange={handleChange}
-              options={["Mental", "Physical", "None"]} />
-            {(formData.issues === "Mental" || formData.issues === "Physical") && (
-              <Input label="Description" name="description" value={formData.description} onChange={handleChange} />
-            )}
-            <Input label="Blood Pressure (e.g. 120/80)" name="bloodPressure" value={formData.bloodPressure} onChange={handleChange} />
-            {bpStatus && (
-              <p className={`text-sm font-medium mt-1 ${bpStatus === "Normal" ? "text-green-500" : "text-red-500"}`}>
-                Blood Pressure Status: {bpStatus}
-              </p>
-            )}
-            <Input label="Sugar Level (mg/dL)" name="sugarLevel" value={formData.sugarLevel} onChange={handleChange} type="number" />
-            {sugarStatus && (
-              <p className={`text-sm font-medium mt-1 ${sugarStatus === "Normal" ? "text-green-500" : "text-red-500"}`}>
-                Sugar Level Status: {sugarStatus}
-              </p>
-            )}
+            <h3 className="text-gray-800 font-bold text-2xl sm:text-xl mb-6">Address Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Profession" name="profession" value={formData.profession} onChange={handleChange} placeholder="Enter your profession" />
+              <Input label="City" name="city" value={formData.city} onChange={handleChange} placeholder="Enter city name" />
+              <Input label="State" name="state" value={formData.state} onChange={handleChange} placeholder="Enter state name" />
+              <Input label="Pincode" name="pincode" value={formData.pincode} onChange={handleChange} placeholder="Enter pincode" />
+            </div>
+            <div className="mt-4">
+              <Input label="Address" name="address" value={formData.address} onChange={handleChange} placeholder="Enter full address" isTextArea={true} />
+            </div>
           </>
         );
       case 4:
         return (
           <>
-            <h3 className="text-gray-600 font-semibold text-2xl sm:text-md">Contact Details</h3>
-            <Input label="Profession" name="profession" value={formData.profession} onChange={handleChange} />
-            <Input label="Phone" name="phone" value={formData.phone} onChange={handleChange} />
-            <Input label="Address" name="address" value={formData.address} onChange={handleChange} />
-            <Input label="Pincode" name="pincode" value={formData.pincode} onChange={handleChange} />
-          </>
-        );
-      case 5:
-        return (
-          <>
-            <h3 className="text-gray-600 font-semibold text-2xl sm:text-md">Membership Details</h3>
-            <Select label="Package" name="packages" value={formData.packages} onChange={handleChange}
-              options={["Basic", "Standard", "Premium", "Student", "Woman", "Group", "Offer"]} />
-            <Select label="Duration (Months)" name="duration" value={formData.duration} onChange={handleChange}
-              options={Array.from({ length: 12 }, (_, i) => (i + 1).toString())} />
-            <Input label="Start Date" type="date" name="startDate" value={formData.startDate} onChange={handleChange} />
-            <Input label="End Date" type="date" name="endDate" value={formData.endDate} readOnly />
-            <Select label="Require Services?" name="services" value={formData.services} onChange={handleChange}
-              options={["Yes", "No"]} />
-            {formData.services === "Yes" && (
-              <>
-                <Input label="Personal Training" name="personalTraining" placeholder="e.g. 45 Days"
-                  value={formData.personalTraining || ""} onChange={handleChange} />
-                <Select label="Customized Workout" name="customWorkout" value={formData.customWorkout} onChange={handleChange}
-                  options={["None", "Beginner", "Intermediate", "Advanced"]} />
-                <Select label="Customized Diet" name="customDiet" value={formData.customDiet} onChange={handleChange}
-                  options={["None", "Basic", "Weight Loss", "Muscle Gain", "Pro Diet"]} />
-                <Select label="Rehab Therapy" name="rehabTherapy" value={formData.rehabTherapy} onChange={handleChange}
-                  options={["None", "Basic Recovery", "Advanced Healing", "Elite Recovery"]} />
-              </>
-            )}
+            <h3 className="text-gray-800 font-bold text-2xl sm:text-xl mb-6">Progress Photos</h3>
+            <p className="text-sm text-gray-600 mb-6">Upload photos of your body from different angles for transformation tracking</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <ImageUploadField 
+                label="Front Body Photo" 
+                name="frontBodyImage" 
+                onChange={handleImageChange}
+                preview={imagePreviews.frontBodyImage}
+                onRemove={() => removeImage('frontBodyImage')}
+              />
+              <ImageUploadField 
+                label="Side Body Photo" 
+                name="sideBodyImage" 
+                onChange={handleImageChange}
+                preview={imagePreviews.sideBodyImage}
+                onRemove={() => removeImage('sideBodyImage')}
+              />
+              <ImageUploadField 
+                label="Back Body Photo" 
+                name="backBodyImage" 
+                onChange={handleImageChange}
+                preview={imagePreviews.backBodyImage}
+                onRemove={() => removeImage('backBodyImage')}
+              />
+            </div>
           </>
         );
       default:
@@ -313,67 +292,131 @@ export const Register = () => {
   };
 
   const StepIndicator = () => (
-    <div className="flex items-center justify-between mb-8">
-      {[1, 2, 3, 4, 5].map((num) => (
-        <div key={num}
-          className={`flex-1 text-center py-2 rounded-full mx-1 text-sm
-          ${step === num
-              ? "bg-blue-600 text-white"
-              : step > num
-                ? "bg-green-600 text-white"
-                : "bg-gray-200 text-gray-600"}`}>
-          Step {num}
-        </div>
-      ))}
+    <div className="mb-8">
+      <div className="flex items-center justify-between mb-4">
+        {[1, 2, 3, 4].map((num) => (
+          <React.Fragment key={num}>
+            <div
+              className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm transition-all
+              ${step === num
+                  ? "bg-blue-600 text-white shadow-lg scale-110"
+                  : step > num
+                    ? "bg-green-500 text-white"
+                    : "bg-gray-300 text-gray-600"}`}>
+              {step > num ? "✓" : num}
+            </div>
+            {num < 4 && (
+              <div className={`flex-1 h-1 mx-2 rounded-full transition-all ${
+                step > num ? "bg-green-500" : "bg-gray-300"
+              }`}></div>
+            )}
+          </React.Fragment>
+        ))}
+      </div>
+      <div className="flex justify-between text-xs text-gray-600">
+        <span>Basic Info</span>
+        <span>Measurements</span>
+        <span>Address</span>
+        <span>Photos</span>
+      </div>
     </div>
   );
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white shadow-xl rounded-xl mt-[100px]">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-8 px-4 sm:px-6 lg:px-8">
       <Toaster position="top-right" />
-      <StepIndicator />
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {renderStep()}
-        <div className="flex justify-between pt-6">
-          {step > 1 && (
-            <button type="button" onClick={handleBack}
-              className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600">Back</button>
-          )}
-          {step < 5 ? (
-            <button type="button" onClick={handleNext}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">Next</button>
-          ) : (
-            <button type="submit" disabled={isSubmitting}
-              className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-700">
-              {isSubmitting ? "Submitting..." : "Finish"}
-            </button>
-          )}
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white shadow-2xl rounded-2xl p-6 sm:p-8 lg:p-10">
+          {/* Header */}
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-2">Join Our Fitness Family</h1>
+            <p className="text-gray-600">Complete your registration in 4 simple steps</p>
+          </div>
+
+          {/* Step Indicator */}
+          <StepIndicator />
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
+            <div className="bg-gray-50 p-6 sm:p-8 rounded-xl">
+              {renderStep()}
+            </div>
+
+            {/* Navigation Buttons */}
+            <div className="flex flex-col-reverse sm:flex-row justify-between gap-4 pt-6 border-t border-gray-200">
+              {step > 1 && (
+                <button 
+                  type="button" 
+                  onClick={handleBack}
+                  className="w-full sm:w-auto bg-gray-500 hover:bg-gray-600 text-white font-semibold px-6 py-3 rounded-lg transition-all duration-200 transform hover:scale-105"
+                >
+                  ← Back
+                </button>
+              )}
+              <div className="flex-1"></div>
+              {step < 4 ? (
+                <button 
+                  type="button" 
+                  onClick={handleNext}
+                  className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg transition-all duration-200 transform hover:scale-105"
+                >
+                  Next →
+                </button>
+              ) : (
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white font-semibold px-8 py-3 rounded-lg transition-all duration-200 transform hover:scale-105"
+                >
+                  {isSubmitting ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                      Registering...
+                    </span>
+                  ) : (
+                    "✓ Complete Registration"
+                  )}
+                </button>
+              )}
+            </div>
+          </form>
         </div>
-      </form>
+
+        {/* Progress text */}
+        <div className="text-center mt-6 text-gray-600 text-sm">
+          <p>Step {step} of 4</p>
+        </div>
+      </div>
     </div>
   );
 };
 
-const Input = ({ label, ...props }) => (
+const Input = ({ label, isTextArea, ...props }) => (
   <div className="mb-3">
-    <label className="block mb-1 text-sm font-medium text-gray-700">{label}</label>
-    <input
-      className={`w-full border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${props.readOnly ? "bg-gray-100" : ""}`}
-      {...props}
-      required={!props.readOnly}
-    />
+    <label className="block mb-2 text-sm font-semibold text-gray-700">{label}</label>
+    {isTextArea ? (
+      <textarea
+        className="w-full border-2 border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+        rows="4"
+        {...props}
+      />
+    ) : (
+      <input
+        className="w-full border-2 border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+        {...props}
+      />
+    )}
   </div>
 );
 
 const Select = ({ label, name, value, onChange, options }) => (
   <div className="mb-3">
-    <label className="block mb-1 text-sm font-medium text-gray-700">{label}</label>
+    <label className="block mb-2 text-sm font-semibold text-gray-700">{label}</label>
     <select
       name={name}
       value={value}
       onChange={onChange}
-      className="w-full border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-      required
+      className="w-full border-2 border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white cursor-pointer"
     >
       <option value="" disabled hidden>
         Select an option
@@ -385,11 +428,54 @@ const Select = ({ label, name, value, onChange, options }) => (
   </div>
 );
 
-
-const InputFile = ({ label, name, onChange }) => (
-  <div className="mb-3">
-    <label className="block mb-1 text-sm font-medium text-gray-700">{label}</label>
-    <input type="file" name={name} onChange={onChange}
-      className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:border file:border-gray-300 file:rounded-md file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100" />
+const ImageUploadField = ({ label, name, onChange, preview, onRemove }) => (
+  <div className="bg-white p-4 rounded-lg border-2 border-gray-300 transition-all hover:border-blue-500">
+    <label className="block mb-3 text-sm font-semibold text-gray-700">{label}</label>
+    
+    {preview ? (
+      <div className="relative">
+        <img 
+          src={preview} 
+          alt={label} 
+          className="w-full h-48 object-cover rounded-lg mb-3"
+        />
+        <button
+          type="button"
+          onClick={onRemove}
+          className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-all"
+        >
+          <X size={18} />
+        </button>
+        <label className="block">
+          <span className="text-sm text-blue-600 hover:text-blue-700 cursor-pointer font-semibold">
+            Change Image
+          </span>
+          <input
+            type="file"
+            name={name}
+            onChange={onChange}
+            accept="image/*"
+            className="hidden"
+          />
+        </label>
+      </div>
+    ) : (
+      <label className="block cursor-pointer">
+        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 hover:bg-blue-50 transition-all">
+          <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+          <p className="text-sm text-gray-600 mb-1">Click to upload or drag & drop</p>
+          <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+        </div>
+        <input
+          type="file"
+          name={name}
+          onChange={onChange}
+          accept="image/*"
+          className="hidden"
+        />
+      </label>
+    )}
   </div>
 );
+
+export default Register;

@@ -23,10 +23,7 @@ console.log( req.body)
     }
 
     // Check for existing email
-    const existingUser = await Registration.findOne({ emails });
-    if (existingUser) {
-      return res.status(409).json({ message: "Email already registered" });
-    }
+  
 
     // Calculate health status
     let statusLevel = "Normal";
@@ -87,48 +84,86 @@ export const fetch = async (req, res) => {
 export const updatereg = async (req, res) => {
   try {
     const { id } = req.params;
+
     const {
       name, age, gender, emails, height, weight, bmi, bloodGroup,
       issues, description = "", profession, phone, address, pincode,
-      packages, duration, services, startDate, endDate,bodyFat,waist,neck,hip,
-      personalTraining = "", customWorkout = "", customDiet = "", rehabTherapy = ""
+      packages, duration, services, startDate, endDate,
+      bodyFat, waist, neck, hip,
+      personalTraining = "", customWorkout = "", customDiet = "", rehabTherapy = "",
+      images: {
+        profileImage,
+        frontBodyImage,
+        sideBodyImage,
+        backBodyImage,
+      } = {}
     } = req.body;
 
-    
-    if (
-      !name 
-    ) {
+    if (!name) {
       return res.status(400).json({
-        message: "Please provide all required details"
+        message: "Please provide all required details",
       });
     }
 
-    const updateData = {
-      name, age, gender, emails, height, weight, bmi, bloodGroup,
-      issues, description, profession, phone, address, pincode,
-      packages, duration, services, startDate, endDate,waist,neck,hip,
-      personalTraining, customWorkout, customDiet, rehabTherapy,bodyFat
-    };
-
-    const updatedUser = await Registration.findByIdAndUpdate(id, updateData, { new: true });
-
-    if (!updatedUser) {
+    // Existing user fetch panna
+    const existingUser = await Registration.findById(id);
+    if (!existingUser) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    return res.status(200).json({
-      message: "Updated successfully",
-      data: updatedUser
+    const updateData = {
+      name,
+      age,
+      gender,
+      emails,
+      height,
+      weight,
+      bmi,
+      bloodGroup,
+      issues,
+      description,
+      profession,
+      phone,
+      address,
+      pincode,
+      packages,
+      duration,
+      services,
+      startDate,
+      endDate,
+      waist,
+      neck,
+      hip,
+      personalTraining,
+      customWorkout,
+      customDiet,
+      rehabTherapy,
+      bodyFat,
+      images: {
+        profileImage: profileImage || existingUser.images.profileImage,
+        frontBodyImage: frontBodyImage || existingUser.images.frontBodyImage,
+        sideBodyImage: sideBodyImage || existingUser.images.sideBodyImage,
+        backBodyImage: backBodyImage || existingUser.images.backBodyImage,
+      },
+    };
+
+    const updatedUser = await Registration.findByIdAndUpdate(id, updateData, {
+      new: true,
     });
 
+    return res.status(200).json({
+      message: "Updated successfully",
+      data: updatedUser,
+    });
   } catch (err) {
     console.error("Update Error:", err);
     return res.status(500).json({
       message: "Internal Server Error",
-      error: err.message
+      error: err.message,
     });
   }
 };
+
 
 
 export const deletereg = async(req,res)=>{
