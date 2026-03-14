@@ -13,7 +13,7 @@ const Update = () => {
     const fetchData = async () => {
       try {
         const response = await axios.get(
-          `https://wfc-backend-software.onrender.com/api/v1/fetchone/${id}`
+          `http://localhost:5000/api/v1/fetchone/${id}`
         );
         setFormData(response.data.data);
         setLoading(false);
@@ -101,7 +101,7 @@ const Update = () => {
     e.preventDefault();
     try {
       const response = await axios.post(
-        `https://wfc-backend-software.onrender.com/api/v1/update/${formData._id}`,
+        `http://localhost:5000/api/v1/update/${formData._id}`,
         formData
       );
 

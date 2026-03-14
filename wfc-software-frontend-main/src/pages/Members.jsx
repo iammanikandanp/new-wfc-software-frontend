@@ -60,10 +60,14 @@ const Members = () => {
               <h1 className='text-3xl font-bold text-slate-900'>Members</h1>
               <p className='text-slate-600 mt-1'>Manage gym members</p>
             </div>
-            <button
+            {/* <button
               onClick={() => navigate('/register')}
               className='flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition'
-            >
+            > */}
+            <button
+  onClick={() => navigate('/members/new')}
+  className='flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition'
+>
               <Plus size={20} />
               <span>Add Member</span>
             </button>

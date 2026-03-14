@@ -31,6 +31,7 @@ images: {
 
   profession: { type: String,   },
   phone: { type: String,   },
+  password: { type: String },
   address: { type: String,   },
   pincode: { type: String,   },
 

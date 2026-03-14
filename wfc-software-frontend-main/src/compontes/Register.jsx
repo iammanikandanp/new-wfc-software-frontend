@@ -23,7 +23,9 @@ export const Register = () => {
     phoneNumber: "",
     email: "",
     emergencyContact: "",
+    password: '',
     medicalConditions: "",
+
     
     // Step 2: Body Measurements
     gender: "",
@@ -148,6 +150,7 @@ export const Register = () => {
       data.append('bmi', formData.bmi || '');
       data.append('waist', formData.waist);
       data.append('hip', formData.hip);
+      data.append('password', formData.password);
       data.append('description', formData.medicalConditions || 'None'); // Map medical conditions to description
       
       // Add images
@@ -168,7 +171,7 @@ export const Register = () => {
       data.append('neck', '30'); // Default neck measurement
       data.append('bodyFat', '15'); // Default body fat percentage
 
-      const response = await axios.post("https://wfc-backend-software.onrender.com/api/v1/register", data, {
+      const response = await axios.post("http://localhost:5000/api/v1/register", data, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
@@ -195,6 +198,7 @@ export const Register = () => {
               <Input label="Phone Number" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} type="tel" placeholder="10-digit phone number" />
               <Input label="Email" name="email" value={formData.email} onChange={handleChange} type="email" placeholder="Enter your email" />
               <Input label="Emergency Contact" name="emergencyContact" value={formData.emergencyContact} onChange={handleChange} type="tel" placeholder="Emergency contact number" required={false} />
+              <Input label="Password" name="password" value={formData.password} onChange={handleChange} type="password" placeholder="Create a password" />
             </div>
             <div className="mt-4">
               <Input label="Medical Conditions" name="medicalConditions" value={formData.medicalConditions} onChange={handleChange} placeholder="List any medical conditions or leave blank" required={false} isTextArea={true} />

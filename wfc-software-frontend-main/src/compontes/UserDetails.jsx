@@ -11,7 +11,7 @@ export const UserDetails = () => {
     const fetchData = async () => {
       try {
         const response = await axios.get(
-          "https://wfc-backend-software.onrender.com/api/v1/fetch"
+          "http://localhost:5000/api/v1/fetch"
         );
         const rawData = response.data.data || [];
         const processedData = rawData.map((user) => {
@@ -47,7 +47,7 @@ export const UserDetails = () => {
   const handleDelete = async (id) => {
     try {
       await axios.post(
-        `https://wfc-backend-software.onrender.com/api/v1/delete/${id}`
+        `http://localhost:5000/api/v1/delete/${id}`
       );
       setUserData(userData.filter((user) => user._id !== id));
       console.log("Deleted user ID:", id);
@@ -117,7 +117,7 @@ export const UserDetails = () => {
                     <td className="px-4 py-3 border border-gray-200">
                       {user.images?.profileImage !== "None" ? (
                         <img
-                          src={`https://wfc-backend-software.onrender.com/${user.images.profileImage}`}
+                          src={`http://localhost:5000/${user.images.profileImage}`}
                           alt="profile"
                           className="w-12 h-12 object-cover rounded-full mx-auto"
                         />
@@ -181,12 +181,12 @@ export const UserDetails = () => {
                     <td className="px-4 py-3 border border-gray-200">
                       {user.images?.frontBodyImage !== "None" ? (
                         <img
-                          src={`https://wfc-backend-software.onrender.com/${user.images.frontBodyImage}`}
+                          src={`http://localhost:5000/${user.images.frontBodyImage}`}
                           alt="front"
                           className="w-12 h-12 object-cover cursor-pointer rounded-lg mx-auto"
                           onClick={() =>
                             setSelectedImage(
-                              `https://wfc-backend-software.onrender.com/${user.images.frontBodyImage}`
+                              `http://localhost:5000/${user.images.frontBodyImage}`
                             )
                           }
                         />
@@ -199,12 +199,12 @@ export const UserDetails = () => {
                     <td className="px-4 py-3 border border-gray-200">
                       {user.images?.sideBodyImage !== "None" ? (
                         <img
-                          src={`https://wfc-backend-software.onrender.com/${user.images.sideBodyImage}`}
+                          src={`http://localhost:5000/${user.images.sideBodyImage}`}
                           alt="side"
                           className="w-12 h-12 object-cover cursor-pointer rounded-lg mx-auto"
                           onClick={() =>
                             setSelectedImage(
-                              `https://wfc-backend-software.onrender.com/${user.images.sideBodyImage}`
+                              `http://localhost:5000/${user.images.sideBodyImage}`
                             )
                           }
                         />
@@ -217,12 +217,12 @@ export const UserDetails = () => {
                     <td className="px-4 py-3 border border-gray-200">
                       {user.images?.backBodyImage !== "None" ? (
                         <img
-                          src={`https://wfc-backend-software.onrender.com/${user.images.backBodyImage}`}
+                          src={`http://localhost:5000/${user.images.backBodyImage}`}
                           alt="back"
                           className="w-12 h-12 object-cover cursor-pointer rounded-lg mx-auto"
                           onClick={() =>
                             setSelectedImage(
-                              `https://wfc-backend-software.onrender.com/${user.images.backBodyImage}`
+                              `http://localhost:5000/${user.images.backBodyImage}`
                             )
                           }
                         />
