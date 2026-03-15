@@ -43,6 +43,7 @@ images: {
   customWorkout: { type: String, default: "" },
   customDiet: { type: String, default: "" },
   rehabTherapy: { type: String, default: "" },
+  attendanceId: { type: String, default: "" },
 
 },{ timestamps: true });
 

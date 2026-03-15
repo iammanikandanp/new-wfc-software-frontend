@@ -15,6 +15,8 @@ import Training from "./pages/Training";
 import AddTrainer from "./pages/AddTrainer";
 import Reports from "./pages/Reports";
 import About from "./pages/About";
+import AddPayment from "./pages/AddPayment";
+import Leads from './pages/Leads';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -126,6 +128,15 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/leads"
+          element={
+            <ProtectedRoute>
+              <Leads />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/payments/new" element={<ProtectedRoute><AddPayment /></ProtectedRoute>} />
 
         {/* Default Route */}
         <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />

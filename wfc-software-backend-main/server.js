@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import connectDb from "./database/db.js";
 import apiRoutes from "./routers/apiRoutes.js";
+import customRoutes from "./routers/routers.js";
 import cors from "cors";
 dotenv.config();
 
@@ -17,6 +18,7 @@ app.use("/uploads", express.static("uploads"));
 
 // API Routes
 app.use("/api/v1", apiRoutes);
+app.use("/api/v1", customRoutes); 
 
 // Health check
 app.get("/health", (req, res) => {

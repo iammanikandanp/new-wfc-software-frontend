@@ -31,12 +31,12 @@ import {
 } from "../controllers/paymentController.js";
 
 import {
-  createDietPlan,
-  getDietPlanByMember,
-  getAllDietPlans,
-  updateDietPlan,
-  deleteDietPlan,
-} from "../controllers/dietPlanController.js";
+  createRegDietPlan,
+  getAllRegDietPlans,
+  getRegDietPlanByMember,
+  updateRegDietPlan,
+  deleteRegDietPlan,
+} from "../controllers/Regdietplancontroller.js";
 
 import {
   createTrainer,
@@ -49,12 +49,12 @@ import {
 } from "../controllers/trainerController.js";
 
 import {
-  checkInMember,
-  checkOutMember,
-  getDailyAttendance,
-  getMemberAttendanceHistory,
-  getMonthlyAttendanceReport,
-} from "../controllers/attendanceController.js";
+  importAttendance,
+  getAllAttendance,
+  getAttendanceByRegistration,
+  getAvailableMonths,
+  linkAttendanceId,
+} from "../controllers/xlsAttendanceController.js";
 
 import {
   getInvoiceById,
@@ -73,6 +73,9 @@ import {
   updatePlan,
   deletePlan,
 } from "../controllers/planController.js";
+import { sendInvoiceEmail } from "../controllers/emailController.js";
+import { createLead, getAllLeads, updateLead, deleteLead, getLeadStats } from "../controllers/leadController.js";
+
 
 const router = express.Router();
 
@@ -109,11 +112,11 @@ router.get("/payments/:id", protect, getPaymentById);
 router.get("/payments/member/:memberId", protect, getPaymentsByMember);
 
 // ==================== DIET PLAN ROUTES ====================
-router.post("/diet-plans", protect, authorize("admin", "staff", "trainer"), createDietPlan);
-router.get("/diet-plans", protect, getAllDietPlans);
-router.get("/diet-plans/member/:memberId", protect, getDietPlanByMember);
-router.put("/diet-plans/:id", protect, authorize("admin", "staff", "trainer"), updateDietPlan);
-router.delete("/diet-plans/:id", protect, authorize("admin", "staff", "trainer"), deleteDietPlan);
+router.post("/diet-plans", protect, authorize("admin", "staff", "trainer"), createRegDietPlan);
+router.get("/diet-plans", protect, getAllRegDietPlans);
+router.get("/diet-plans/member/:memberId", protect, getRegDietPlanByMember);
+router.put("/diet-plans/:id", protect, authorize("admin", "staff", "trainer"), updateRegDietPlan);
+router.delete("/diet-plans/:id", protect, authorize("admin", "staff", "trainer"), deleteRegDietPlan);
 
 // ==================== TRAINER ROUTES ====================
 router.post("/trainers", protect, authorize("admin"), createTrainer);
@@ -125,11 +128,11 @@ router.get("/trainers/sessions/:memberId", protect, getTrainingSessions);
 router.post("/trainers/sessions/complete", protect, authorize("admin", "trainer"), completeSession);
 
 // ==================== ATTENDANCE ROUTES ====================
-router.post("/attendance/check-in", protect, checkInMember);
-router.post("/attendance/check-out", protect, authorize("admin", "staff"), checkOutMember);
-router.get("/attendance/daily", protect, authorize("admin", "staff"), getDailyAttendance);
-router.get("/attendance/member/:memberId", protect, getMemberAttendanceHistory);
-router.get("/attendance/monthly/report", protect, authorize("admin", "staff"), getMonthlyAttendanceReport);
+router.post("/attendance/import", protect, importAttendance);
+router.get("/attendance", protect, getAllAttendance);
+router.get("/attendance/member/:memberId", protect, getAttendanceByRegistration);
+router.get("/attendance/months", protect, getAvailableMonths);
+router.post("/attendance/link", protect, linkAttendanceId);
 
 // ==================== INVOICE ROUTES ====================
 router.get("/invoices", protect, authorize("admin"), getAllInvoices);
@@ -140,4 +143,12 @@ router.get("/invoices/:id/data", protect, getInvoiceData);
 router.put("/invoices/:id/printed", protect, markInvoicePrinted);
 router.put("/invoices/:id/sent", protect, markInvoiceSent);
 
+// ── Leads routes ─────────────────────────────────────────────────────────────
+router.post("/leads",          createLead);
+router.get("/leads",           getAllLeads);
+router.get("/leads/stats",     getLeadStats);
+router.put("/leads/:id",       updateLead);
+router.delete("/leads/:id",    deleteLead);
+
+router.post("/send-email", sendInvoiceEmail);
 export default router;
