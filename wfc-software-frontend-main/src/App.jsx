@@ -15,8 +15,6 @@ import Training from "./pages/Training";
 import AddTrainer from "./pages/AddTrainer";
 import Reports from "./pages/Reports";
 import About from "./pages/About";
-import AddPayment from "./pages/AddPayment";
-import Leads from './pages/Leads';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -40,103 +38,31 @@ function App() {
         <Route path="/register" element={<Register />} />
 
         {/* Protected Routes */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/members"
-          element={
-            <ProtectedRoute>
-              <Members />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/members/new"
-          element={
-            <ProtectedRoute>
-              <AddMember />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/payments"
-          element={
-            <ProtectedRoute>
-              <Payments />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/attendance"
-          element={
-            <ProtectedRoute>
-              <Attendance />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/diet-plans"
-          element={
-            <ProtectedRoute>
-              <DietPlans />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/diet-plans/new"
-          element={
-            <ProtectedRoute>
-              <AddDietPlan />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/training"
-          element={
-            <ProtectedRoute>
-              <Training />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/training/new"
-          element={
-            <ProtectedRoute>
-              <AddTrainer />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/reports"
-          element={
-            <ProtectedRoute>
-              <Reports />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/about"
-          element={
-            <ProtectedRoute>
-              <About />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/leads"
-          element={
-            <ProtectedRoute>
-              <Leads />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/payments/new" element={<ProtectedRoute><AddPayment /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+
+        {/* Members */}
+        <Route path="/members" element={<ProtectedRoute><Members /></ProtectedRoute>} />
+        <Route path="/members/new" element={<ProtectedRoute><AddMember /></ProtectedRoute>} />
+        {/* ↓ THIS WAS MISSING — causes /members/undefined */}
+        <Route path="/members/:id" element={<ProtectedRoute><MemberProfile /></ProtectedRoute>} />
+
+        {/* Payments */}
+        <Route path="/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
+
+        {/* Attendance */}
+        <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
+
+        {/* Diet Plans */}
+        <Route path="/diet-plans" element={<ProtectedRoute><DietPlans /></ProtectedRoute>} />
+        <Route path="/diet-plans/new" element={<ProtectedRoute><AddDietPlan /></ProtectedRoute>} />
+
+        {/* Training */}
+        <Route path="/training" element={<ProtectedRoute><Training /></ProtectedRoute>} />
+        <Route path="/training/new" element={<ProtectedRoute><AddTrainer /></ProtectedRoute>} />
+
+        {/* Reports & About */}
+        <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+        <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
 
         {/* Default Route */}
         <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />
@@ -146,4 +72,3 @@ function App() {
 }
 
 export default App;
-

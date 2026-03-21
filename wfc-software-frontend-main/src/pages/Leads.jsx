@@ -193,7 +193,7 @@ const Leads = () => {
     try {
       await axios.put(`http://localhost:5000/api/v1/leads/${id}`, data);
       setLeads(prev => prev.map(l => l._id === id ? { ...l, ...data } : l));
-    } catch(e) { alert('Update failed'); }
+    } catch { alert('Update failed'); }
   };
 
   const handleDelete = async () => {
@@ -201,7 +201,7 @@ const Leads = () => {
       await axios.delete(`http://localhost:5000/api/v1/leads/${delTarget._id}`);
       setLeads(prev => prev.filter(l => l._id !== delTarget._id));
       setDelTarget(null);
-    } catch(e) { alert('Delete failed'); }
+    } catch { alert('Delete failed'); }
   };
 
   const filtered = leads

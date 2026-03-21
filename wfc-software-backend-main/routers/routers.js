@@ -10,7 +10,6 @@ import {
   updateRegPayment,
   deleteRegPayment,
 } from "../controllers/regPaymentController.js";
-
 import {
   createRegDietPlan,
   getAllRegDietPlans,
@@ -18,7 +17,6 @@ import {
   updateRegDietPlan,
   deleteRegDietPlan,
 } from "../controllers/regDietPlanController.js";
-
 import {
   importAttendance,
   getAllAttendance,
@@ -26,15 +24,13 @@ import {
   getAvailableMonths,
   linkAttendanceId,
 } from "../controllers/xlsAttendanceController.js";
-
 import { sendInvoiceEmail } from "../controllers/emailController.js";
 import { createLead, getAllLeads, updateLead, deleteLead, getLeadStats } from "../controllers/leadController.js";
 
 const router = express.Router();
 
-// ── Registration routes ──────────────────────────────────────────────────────
-router.post(
-  "/register",
+// ── Registration ──────────────────────────────────────────────────────────────
+router.post("/register",
   parser.fields([
     { name: "profileImage",   maxCount: 1 },
     { name: "frontBodyImage", maxCount: 1 },
@@ -43,10 +39,9 @@ router.post(
   ]),
   register
 );
-
 router.get("/fetch",           fetch);
-router.post(
-  "/update/:id",
+router.get("/fetchone/:id",    fetchOne);
+router.post("/update/:id",
   parser.fields([
     { name: "profileImage",   maxCount: 1 },
     { name: "frontBodyImage", maxCount: 1 },
@@ -56,39 +51,38 @@ router.post(
   updatereg
 );
 router.post("/delete/:id",     deletereg);
-router.get("/fetchone/:id",    fetchOne);
 
-// ── Payment routes ───────────────────────────────────────────────────────────
-router.post("/reg-payments",               createRegPayment);
-router.get("/reg-payments",                getAllRegPayments);
-router.get("/reg-payments/member/:id",     getRegPaymentsByMember);
+// ── Payments ──────────────────────────────────────────────────────────────────
+router.post("/reg-payments",                createRegPayment);
+router.get("/reg-payments",                 getAllRegPayments);
 router.get("/reg-payments/revenue/summary", getRevenueSummary);
-router.patch("/reg-payments/pdf/:id",         patchPdfUrl);
-router.put("/reg-payments/:id",               updateRegPayment);
-router.delete("/reg-payments/:id",            deleteRegPayment);
+router.get("/reg-payments/member/:id",      getRegPaymentsByMember);
+router.patch("/reg-payments/pdf/:id",       patchPdfUrl);
+router.put("/reg-payments/:id",             updateRegPayment);
+router.delete("/reg-payments/:id",          deleteRegPayment);
 
-// ── Diet Plan routes ─────────────────────────────────────────────────────────
+// ── Diet Plans ────────────────────────────────────────────────────────────────
 router.post("/reg-diet-plans",            createRegDietPlan);
 router.get("/reg-diet-plans",             getAllRegDietPlans);
 router.get("/reg-diet-plans/member/:id",  getRegDietPlanByMember);
 router.put("/reg-diet-plans/:id",         updateRegDietPlan);
 router.delete("/reg-diet-plans/:id",      deleteRegDietPlan);
 
-// ── XLS Attendance routes ────────────────────────────────────────────────────
-router.post("/xls-attendance/import",        importAttendance);
-router.get("/xls-attendance",               getAllAttendance);
-router.get("/xls-attendance/months",        getAvailableMonths);
-router.get("/xls-attendance/member/:id",    getAttendanceByRegistration);
-router.post("/xls-attendance/link",         linkAttendanceId);
+// ── Attendance ────────────────────────────────────────────────────────────────
+router.post("/xls-attendance/import",     importAttendance);
+router.get("/xls-attendance",             getAllAttendance);
+router.get("/xls-attendance/months",      getAvailableMonths);
+router.get("/xls-attendance/member/:id",  getAttendanceByRegistration);
+router.post("/xls-attendance/link",       linkAttendanceId);
 
-// ── Email route ──────────────────────────────────────────────────────────────
-router.post("/send-email", sendInvoiceEmail);
-
-// ── Leads routes ─────────────────────────────────────────────────────────────
+// ── Leads (stats MUST be before /:id to avoid wildcard match) ─────────────────
 router.post("/leads",          createLead);
-router.get("/leads",           getAllLeads);
 router.get("/leads/stats",     getLeadStats);
+router.get("/leads",           getAllLeads);
 router.put("/leads/:id",       updateLead);
 router.delete("/leads/:id",    deleteLead);
+
+// ── Email ─────────────────────────────────────────────────────────────────────
+router.post("/send-email",     sendInvoiceEmail);
 
 export default router;
