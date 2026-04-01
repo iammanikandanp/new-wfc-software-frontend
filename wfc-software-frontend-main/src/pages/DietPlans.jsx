@@ -4,10 +4,10 @@ import axios from 'axios';
 import Navbar from '../components/Navbar';
 import {
   Plus, Search, X, Flame, Droplets, Target,
-  Apple, ChevronRight, Trash2, Edit3, User
+  Apple, Trash2, Edit3, ChevronLeft, ChevronRight
 } from 'lucide-react';
 
-const BASE_URL = 'https://wfc-backend-software.onrender.com';
+const PER_PAGE = 10;
 
 const GOAL_COLORS = {
   'Weight Loss':  { bg: 'bg-blue-50',   text: 'text-blue-700',   dot: 'bg-blue-500',   border: 'border-blue-200' },
@@ -17,19 +17,16 @@ const GOAL_COLORS = {
   'Custom':       { bg: 'bg-violet-50', text: 'text-violet-700', dot: 'bg-violet-500', border: 'border-violet-200' },
 };
 
-// Tiny macro donut ring using SVG
 const MacroRing = ({ protein = 0, carbs = 0, fats = 0 }) => {
   const total = protein + carbs + fats || 1;
   const r = 22, cx = 26, cy = 26, stroke = 6;
   const circ = 2 * Math.PI * r;
-  const pPct = protein / total, cPct = carbs / total, fPct = fats / total;
-  const pDash = pPct * circ, cDash = cPct * circ, fDash = fPct * circ;
-  const pOffset = 0, cOffset = -pDash, fOffset = -(pDash + cDash);
+  const pDash = (protein / total) * circ, cDash = (carbs / total) * circ, fDash = (fats / total) * circ;
   return (
     <svg width="52" height="52" viewBox="0 0 52 52">
       <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f1f5f9" strokeWidth={stroke} />
       {protein > 0 && <circle cx={cx} cy={cy} r={r} fill="none" stroke="#3b82f6" strokeWidth={stroke}
-        strokeDasharray={`${pDash} ${circ - pDash}`} strokeDashoffset={pOffset + circ / 4}
+        strokeDasharray={`${pDash} ${circ - pDash}`} strokeDashoffset={circ / 4}
         strokeLinecap="round" transform={`rotate(-90 ${cx} ${cy})`} />}
       {carbs > 0 && <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f59e0b" strokeWidth={stroke}
         strokeDasharray={`${cDash} ${circ - cDash}`} strokeDashoffset={-pDash + circ / 4}
@@ -47,16 +44,11 @@ const MacroRing = ({ protein = 0, carbs = 0, fats = 0 }) => {
 const DietPlanCard = ({ plan, onEdit, onDelete }) => {
   const goal = plan.goal || 'Maintenance';
   const gc = GOAL_COLORS[goal] || GOAL_COLORS['Custom'];
-  const totalCals = (plan.breakfast?.calories || 0) + (plan.morningSnack?.calories || 0) +
-    (plan.lunch?.calories || 0) + (plan.eveningSnack?.calories || 0) + (plan.dinner?.calories || 0);
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden">
-      {/* Color stripe */}
       <div className={`h-1 ${gc.dot}`} />
-
       <div className="p-5">
-        {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-white font-bold text-sm">
@@ -71,8 +63,6 @@ const DietPlanCard = ({ plan, onEdit, onDelete }) => {
             {goal}
           </span>
         </div>
-
-        {/* Calorie + Water row */}
         <div className="flex items-center gap-3 mb-4">
           <div className="flex items-center gap-1.5 bg-orange-50 px-3 py-1.5 rounded-xl">
             <Flame size={14} className="text-orange-500" />
@@ -89,8 +79,6 @@ const DietPlanCard = ({ plan, onEdit, onDelete }) => {
             </div>
           )}
         </div>
-
-        {/* Meals summary */}
         <div className="grid grid-cols-5 gap-1 mb-4">
           {[
             { label: '🌅 Break', meal: plan.breakfast },
@@ -107,31 +95,15 @@ const DietPlanCard = ({ plan, onEdit, onDelete }) => {
             </div>
           ))}
         </div>
-
-        {/* Macros ring + stats */}
         <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl mb-4">
           <MacroRing protein={plan.protein} carbs={plan.carbs} fats={plan.fats} />
           <div className="flex-1 grid grid-cols-2 gap-x-4 gap-y-0.5">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
-              <span className="text-[10px] text-slate-500">Protein <strong className="text-slate-800">{plan.protein || 0}g</strong></span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
-              <span className="text-[10px] text-slate-500">Carbs <strong className="text-slate-800">{plan.carbs || 0}g</strong></span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
-              <span className="text-[10px] text-slate-500">Fats <strong className="text-slate-800">{plan.fats || 0}g</strong></span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
-              <span className="text-[10px] text-slate-500">Fiber <strong className="text-slate-800">{plan.fiber || 0}g</strong></span>
-            </div>
+            <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" /><span className="text-[10px] text-slate-500">Protein <strong className="text-slate-800">{plan.protein || 0}g</strong></span></div>
+            <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" /><span className="text-[10px] text-slate-500">Carbs <strong className="text-slate-800">{plan.carbs || 0}g</strong></span></div>
+            <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" /><span className="text-[10px] text-slate-500">Fats <strong className="text-slate-800">{plan.fats || 0}g</strong></span></div>
+            <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" /><span className="text-[10px] text-slate-500">Fiber <strong className="text-slate-800">{plan.fiber || 0}g</strong></span></div>
           </div>
         </div>
-
-        {/* Actions */}
         <div className="flex gap-2">
           <button onClick={() => onEdit(plan)}
             className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-slate-800 text-white rounded-xl text-xs font-semibold hover:bg-slate-700 transition">
@@ -147,13 +119,48 @@ const DietPlanCard = ({ plan, onEdit, onDelete }) => {
   );
 };
 
+const Pagination = ({ page, totalPages, filteredCount, onPage }) => {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="flex items-center justify-between mt-6">
+      <p className="text-xs text-slate-400">Showing {Math.min((page-1)*PER_PAGE+1, filteredCount)}–{Math.min(page*PER_PAGE, filteredCount)} of {filteredCount}</p>
+      <div className="flex items-center gap-1">
+        <button onClick={() => onPage(p => Math.max(1, p-1))} disabled={page===1}
+          className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-30 hover:bg-white transition">
+          <ChevronLeft size={14} className="text-slate-600"/>
+        </button>
+        {Array.from({length: totalPages}, (_, i) => i+1)
+          .filter(n => n===1 || n===totalPages || Math.abs(n-page)<=1)
+          .reduce((acc, n, idx, arr) => {
+            if (idx > 0 && n - arr[idx-1] > 1) acc.push('…');
+            acc.push(n);
+            return acc;
+          }, [])
+          .map((n, i) => n === '…'
+            ? <span key={`e${i}`} className="px-1 text-slate-400 text-xs">…</span>
+            : <button key={n} onClick={() => onPage(n)}
+                className={`w-7 h-7 rounded-lg text-xs font-semibold transition ${page===n ? 'bg-slate-800 text-white' : 'border border-slate-200 text-slate-600 hover:bg-white bg-slate-50'}`}>
+                {n}
+              </button>
+          )}
+        <button onClick={() => onPage(p => Math.min(totalPages, p+1))} disabled={page===totalPages}
+          className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-30 hover:bg-white transition">
+          <ChevronRight size={14} className="text-slate-600"/>
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const DietPlans = () => {
   const navigate = useNavigate();
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
 
   useEffect(() => { fetchPlans(); }, []);
+  useEffect(() => { setPage(1); }, [search]);
 
   const fetchPlans = async () => {
     try {
@@ -171,14 +178,15 @@ const DietPlans = () => {
     } catch (e) { alert('Delete failed'); }
   };
 
-  const handleEdit = (plan) => {
-    navigate('/diet-plans/new', { state: { editPlan: plan } });
-  };
+  const handleEdit = (plan) => navigate('/diet-plans/new', { state: { editPlan: plan } });
 
   const filtered = plans.filter(p =>
     p.memberName?.toLowerCase().includes(search.toLowerCase()) ||
     p.goal?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+  const paginated  = filtered.slice((page-1)*PER_PAGE, page*PER_PAGE);
 
   const stats = {
     total: plans.length,
@@ -191,7 +199,6 @@ const DietPlans = () => {
       <Navbar />
       <div className="max-w-6xl mx-auto px-4 py-8">
 
-        {/* Header */}
         <div className="flex items-center justify-between mb-7">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
@@ -205,7 +212,6 @@ const DietPlans = () => {
           </button>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-6">
           {[
             { label: 'Active Plans',    value: stats.total,       icon: Apple,    color: 'text-green-600 bg-green-50' },
@@ -219,16 +225,14 @@ const DietPlans = () => {
           ))}
         </div>
 
-        {/* Search */}
         <div className="relative mb-5">
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input value={search} onChange={e => setSearch(e.target.value)}
+          <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
             placeholder="Search by member name or goal…"
             className="w-full pl-10 pr-9 py-2.5 border border-slate-200 rounded-xl bg-white text-sm focus:outline-none focus:ring-2 focus:ring-green-400 shadow-sm" />
           {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2"><X size={14} className="text-slate-400" /></button>}
         </div>
 
-        {/* Grid */}
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(3)].map((_, i) => (
@@ -251,11 +255,17 @@ const DietPlans = () => {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map(plan => (
-              <DietPlanCard key={plan._id} plan={plan} onEdit={handleEdit} onDelete={handleDelete} />
-            ))}
-          </div>
+          <>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs text-slate-500">Showing {Math.min((page-1)*PER_PAGE+1, filtered.length)}–{Math.min(page*PER_PAGE, filtered.length)} of {filtered.length} plans</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {paginated.map(plan => (
+                <DietPlanCard key={plan._id} plan={plan} onEdit={handleEdit} onDelete={handleDelete} />
+              ))}
+            </div>
+            <Pagination page={page} totalPages={totalPages} filteredCount={filtered.length} onPage={setPage} />
+          </>
         )}
       </div>
     </div>

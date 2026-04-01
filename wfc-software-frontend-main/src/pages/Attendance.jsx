@@ -4,12 +4,12 @@ import axios from 'axios';
 import {
   Upload, Search, X, Download, Users, Clock,
   CheckCircle, XCircle, Link, AlertCircle,
-  Dumbbell, Sun, Moon, Star, UserCheck, RefreshCw, Filter
+  Dumbbell, Sun, Moon, Star, UserCheck, RefreshCw,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 
-const BASE_URL = 'https://wfc-backend-software.onrender.com';
+const PER_PAGE = 10;
 
-// ── Dept config ───────────────────────────────────────────────────────────────
 const DEPT = {
   GYM:       { label:'GYM',     color:'bg-red-600',    light:'bg-red-50 text-red-700 border-red-200',       dot:'bg-red-500',    icon:Dumbbell  },
   MrgClient: { label:'Morning', color:'bg-amber-500',  light:'bg-amber-50 text-amber-700 border-amber-200', dot:'bg-amber-500',  icon:Sun       },
@@ -20,8 +20,7 @@ const DEPT = {
 
 const MONTH_LABELS = { '2025-09':'Sep 2025','2025-10':'Oct 2025','2025-11':'Nov 2025' };
 
-// ── Parse SpreadsheetML XLS in browser ────────────────────────────────────────
-const parseMonthXLS = (xmlText, filename) => {
+const parseMonthXLS = (xmlText) => {
   const NS = 'urn:schemas-microsoft-com:office:spreadsheet';
   const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
   const getVal = (cell) => {
@@ -33,54 +32,36 @@ const parseMonthXLS = (xmlText, filename) => {
   const table = ws.getElementsByTagNameNS(NS,'Table')[0];
   if (!table) return null;
   const rows = Array.from(table.getElementsByTagNameNS(NS,'Row'));
-
   const firstCell = rows[0] ? getVal(Array.from(rows[0].getElementsByTagNameNS(NS,'Cell'))[0]||{}) : '';
   if (!firstCell.includes('Mont') && !firstCell.includes('MonthsReport')) return null;
-
   const monthMatch = firstCell.match(/(\d{4}):(\d+)\//);
   const month = monthMatch ? `${monthMatch[1]}-${String(monthMatch[2]).padStart(2,'0')}` : null;
   if (!month) return null;
-
   const records = [];
   rows.forEach(row => {
     const cells = Array.from(row.getElementsByTagNameNS(NS,'Cell'));
     const vals = cells.map(getVal);
     if (vals.length >= 7 && /^\d+$/.test(vals[0])) {
-      records.push({
-        id:         vals[0],
-        name:       vals[1].trim(),
-        dept:       vals[2].trim(),
-        shift:      vals[3].trim(),
-        workDays:   parseFloat(vals[4])||0,
-        attendDays: parseFloat(vals[5])||0,
-        absentDays: parseFloat(vals[6])||0,
-        lateMins:   parseInt(vals[7])||0,
-        lateTimes:  parseInt(vals[8])||0,
-        earlyMins:  parseInt(vals[9])||0,
-        earlyTimes: parseInt(vals[10])||0,
-        otHours:    parseFloat(vals[11])||0,
-      });
+      records.push({ id:vals[0], name:vals[1].trim(), dept:vals[2].trim(), shift:vals[3].trim(),
+        workDays:parseFloat(vals[4])||0, attendDays:parseFloat(vals[5])||0, absentDays:parseFloat(vals[6])||0,
+        lateMins:parseInt(vals[7])||0, lateTimes:parseInt(vals[8])||0, earlyMins:parseInt(vals[9])||0,
+        earlyTimes:parseInt(vals[10])||0, otHours:parseFloat(vals[11])||0 });
     }
   });
-
-  return { month, records, filename };
+  return { month, records };
 };
 
-// ── Attendance % pill ─────────────────────────────────────────────────────────
 const Pill = ({ attend, work }) => {
   const pct = work > 0 ? Math.round((attend/work)*100) : 0;
   const c = pct>=80?'bg-emerald-100 text-emerald-700':pct>=50?'bg-amber-100 text-amber-700':'bg-red-100 text-red-600';
   return <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${c}`}>{pct}%</span>;
 };
 
-// ── Link Modal — set attendanceId on a Registration member ────────────────────
 const LinkModal = ({ record, members, onSave, onClose }) => {
   const [search, setSearch] = useState(record.name.toLowerCase());
   const filtered = members.filter(m =>
-    m.name?.toLowerCase().includes(search.toLowerCase()) ||
-    m.attendanceId === record.attendanceId
+    m.name?.toLowerCase().includes(search.toLowerCase()) || m.attendanceId === record.attendanceId
   ).slice(0, 10);
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={e=>e.stopPropagation()}>
@@ -102,9 +83,7 @@ const LinkModal = ({ record, members, onSave, onClose }) => {
               : filtered.map(m=>(
                 <button key={m._id} onClick={()=>onSave(m._id, record.attendanceId)}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 text-left transition border border-slate-100">
-                  <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold text-xs">
-                    {m.name?.[0]?.toUpperCase()}
-                  </div>
+                  <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold text-xs">{m.name?.[0]?.toUpperCase()}</div>
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-slate-800">{m.name}</p>
                     <p className="text-[10px] text-slate-400">{m.phone} {m.attendanceId?`· ID:${m.attendanceId}`:''}</p>
@@ -120,7 +99,39 @@ const LinkModal = ({ record, members, onSave, onClose }) => {
   );
 };
 
-// ── Main Attendance Page ──────────────────────────────────────────────────────
+const PaginationBar = ({ page, totalPages, filteredCount, onPage }) => {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="px-4 py-3 border-t border-slate-50 flex items-center justify-between">
+      <p className="text-xs text-slate-400">Showing {Math.min((page-1)*PER_PAGE+1,filteredCount)}–{Math.min(page*PER_PAGE,filteredCount)} of {filteredCount}</p>
+      <div className="flex items-center gap-1">
+        <button onClick={() => onPage(p => Math.max(1, p-1))} disabled={page===1}
+          className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition">
+          <ChevronLeft size={14} className="text-slate-600"/>
+        </button>
+        {Array.from({length: totalPages}, (_, i) => i+1)
+          .filter(n => n===1 || n===totalPages || Math.abs(n-page)<=1)
+          .reduce((acc, n, idx, arr) => {
+            if (idx > 0 && n - arr[idx-1] > 1) acc.push('…');
+            acc.push(n);
+            return acc;
+          }, [])
+          .map((n, i) => n === '…'
+            ? <span key={`e${i}`} className="px-1 text-slate-400 text-xs">…</span>
+            : <button key={n} onClick={() => onPage(n)}
+                className={`w-7 h-7 rounded-lg text-xs font-semibold transition ${page===n ? 'bg-slate-800 text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                {n}
+              </button>
+          )}
+        <button onClick={() => onPage(p => Math.min(totalPages, p+1))} disabled={page===totalPages}
+          className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition">
+          <ChevronRight size={14} className="text-slate-600"/>
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const Attendance = () => {
   const fileRef = useRef(null);
   const [records,    setRecords]    = useState([]);
@@ -134,10 +145,12 @@ const Attendance = () => {
   const [search,     setSearch]     = useState('');
   const [sortCol,    setSortCol]    = useState('name');
   const [sortDir,    setSortDir]    = useState('asc');
-  const [linkTarget, setLinkTarget] = useState(null); // record to link
+  const [linkTarget, setLinkTarget] = useState(null);
+  const [page,       setPage]       = useState(1);
 
   useEffect(() => { fetchData(); }, []);
   useEffect(() => { fetchRecords(); }, [activeMonth, activeDept]);
+  useEffect(() => { setPage(1); }, [search, activeDept, activeMonth]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -166,25 +179,18 @@ const Attendance = () => {
     } catch(e) { console.error(e); }
   };
 
-  // Import XLS files
   const handleFiles = async (files) => {
     setImporting(true);
     const logs = [];
     for (const file of files) {
       try {
         const text = await file.text();
-        const parsed = parseMonthXLS(text, file.name);
-        if (!parsed) {
-          logs.push({ t:'warn', m:`⚠️ ${file.name} — not a Month report (skip Punch/Shift files)` });
-          continue;
-        }
+        const parsed = parseMonthXLS(text);
+        if (!parsed) { logs.push({ t:'warn', m:`⚠️ ${file.name} — not a Month report` }); continue; }
         const res = await axios.post(`http://localhost:5000/api/v1/xls-attendance/import`, {
-          month: parsed.month,
-          sourceFile: parsed.filename,
-          records: parsed.records,
+          month: parsed.month, sourceFile: file.name, records: parsed.records,
         });
-        logs.push({ t:'success', m:`✅ ${file.name} — ${res.data.inserted} saved to DB (${MONTH_LABELS[parsed.month]||parsed.month}) · ${res.data.unmatched} unlinked` });
-        // Refresh
+        logs.push({ t:'success', m:`✅ ${file.name} — ${res.data.inserted} saved (${MONTH_LABELS[parsed.month]||parsed.month})` });
         await fetchData();
         setActiveMonth(parsed.month);
         await fetchRecords();
@@ -196,7 +202,6 @@ const Attendance = () => {
     setImporting(false);
   };
 
-  // Link attendanceId to a Registration member
   const handleLink = async (registrationId, attendanceId) => {
     try {
       await axios.post(`http://localhost:5000/api/v1/xls-attendance/link`, { registrationId, attendanceId });
@@ -206,7 +211,6 @@ const Attendance = () => {
     } catch(e) { alert('Link failed: ' + (e.response?.data?.message||e.message)); }
   };
 
-  // Export CSV
   const exportCSV = () => {
     const header = ['AttID','Name','Dept','Shift','Month','Work','Attend','Absent','Att%','LateMins','LateX','OT Hrs','Linked Member'];
     const rows = filtered.map(r => {
@@ -231,6 +235,9 @@ const Attendance = () => {
       return sortDir==='asc' ? (av>bv?1:-1) : (av<bv?1:-1);
     });
 
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+  const paginated  = filtered.slice((page-1)*PER_PAGE, page*PER_PAGE);
+
   const sort = col => {
     if(sortCol===col) setSortDir(d=>d==='asc'?'desc':'asc');
     else { setSortCol(col); setSortDir('asc'); }
@@ -245,7 +252,7 @@ const Attendance = () => {
   const stats = {
     total: filtered.length,
     linked: filtered.filter(r=>r.registrationId).length,
-    avgAtt: filtered.length ? (filtered.reduce((s,r)=>s+(r.workDays?r.attendDays/r.workDays:0),0)/filtered.length*100).toFixed(0) : 0,
+    avgAtt: filtered.length ? Math.round(filtered.reduce((s,r)=>s+(r.workDays?r.attendDays/r.workDays:0),0)/filtered.length*100) : 0,
     totalOT: filtered.reduce((s,r)=>s+(r.otHours||0),0).toFixed(1),
   };
 
@@ -256,7 +263,6 @@ const Attendance = () => {
       <Navbar/>
       <div className="max-w-7xl mx-auto px-4 py-6">
 
-        {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div>
             <h1 className="text-xl font-bold text-slate-900">Attendance</h1>
@@ -272,21 +278,18 @@ const Attendance = () => {
           </div>
         </div>
 
-        {/* Drop zone — shown when no data yet */}
         {!hasData && !loading && (
           <div onDrop={e=>{e.preventDefault();handleFiles(Array.from(e.dataTransfer.files));}} onDragOver={e=>e.preventDefault()}
             onClick={()=>fileRef.current?.click()}
             className="border-2 border-dashed border-slate-300 rounded-2xl p-14 text-center cursor-pointer hover:border-slate-400 hover:bg-white transition mb-5 bg-white">
             <Upload size={32} className="mx-auto mb-3 text-slate-300"/>
             <p className="font-semibold text-slate-600 text-sm">Drop XLS month files here or click to browse</p>
-            <p className="text-xs text-slate-400 mt-1">Import: <span className="font-mono">255Month-25-09.XLS · 255Month-25-10.XLS · 255Month-25-11.XLS</span></p>
             <p className="text-xs text-slate-400 mt-1">Data will be saved to MongoDB and persist across refreshes</p>
           </div>
         )}
 
         {loading && <div className="text-center py-12 text-slate-400 text-sm">Loading attendance data…</div>}
 
-        {/* Import log */}
         {importLog.length > 0 && (
           <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-3 mb-4">
             <div className="flex items-center justify-between mb-1.5">
@@ -301,7 +304,6 @@ const Attendance = () => {
 
         {hasData && !loading && (
           <>
-            {/* Stats */}
             <div className="grid grid-cols-4 gap-3 mb-4">
               {[
                 {label:'Records',     val:stats.total,   icon:Users,        c:'text-slate-700 bg-slate-100'},
@@ -316,36 +318,28 @@ const Attendance = () => {
               ))}
             </div>
 
-            {/* Unlinked warning */}
             {stats.linked < stats.total && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 mb-4 flex items-center gap-2.5">
                 <AlertCircle size={14} className="text-amber-600 flex-shrink-0"/>
-                <p className="text-xs text-amber-800">
-                  <strong>{stats.total - stats.linked} records</strong> are not linked to a registered member.
-                  Click the <strong>🔗 Link</strong> button on any row to connect it. You can also set <strong>Attendance ID</strong> in the member's profile.
-                </p>
+                <p className="text-xs text-amber-800"><strong>{stats.total - stats.linked} records</strong> not linked to a registered member. Click the Link button on any row.</p>
               </div>
             )}
 
-            {/* Controls */}
             <div className="flex flex-wrap items-center gap-2 mb-4">
-              {/* Month tabs */}
               <div className="flex gap-1 bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
                 {months.map(m=>(
-                  <button key={m} onClick={()=>{setActiveMonth(m);}}
+                  <button key={m} onClick={()=>{setActiveMonth(m); setPage(1);}}
                     className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${activeMonth===m?'bg-slate-800 text-white':'text-slate-500 hover:text-slate-700'}`}>
                     {MONTH_LABELS[m]||m}
                   </button>
                 ))}
               </div>
-
-              {/* Dept tabs */}
               <div className="flex flex-wrap gap-1.5">
                 {depts.map(d=>{
                   const cfg=DEPT[d];
                   const cnt=records.filter(r=>d==='ALL'||r.dept===d).length;
                   return (
-                    <button key={d} onClick={()=>setActiveDept(d)}
+                    <button key={d} onClick={()=>{setActiveDept(d); setPage(1);}}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all ${
                         activeDept===d ? (cfg?`${cfg.color} text-white border-transparent shadow-sm`:'bg-slate-800 text-white border-transparent') : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
                       }`}>
@@ -356,8 +350,6 @@ const Attendance = () => {
                   );
                 })}
               </div>
-
-              {/* Search */}
               <div className="relative ml-auto">
                 <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"/>
                 <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Name / ID…"
@@ -366,7 +358,6 @@ const Attendance = () => {
               </div>
             </div>
 
-            {/* Table */}
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
               <div className="px-4 py-3 border-b border-slate-50 flex items-center justify-between">
                 <p className="text-xs font-bold text-slate-700">
@@ -398,9 +389,9 @@ const Attendance = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
-                    {filtered.length===0 ? (
+                    {paginated.length===0 ? (
                       <tr><td colSpan={13} className="text-center py-10 text-slate-400 text-xs">No records — import a Month XLS file</td></tr>
-                    ) : filtered.map((r,i) => {
+                    ) : paginated.map((r,i) => {
                       const cfg=DEPT[r.dept]||{};
                       const linked=r.registrationId;
                       return (
@@ -432,7 +423,7 @@ const Attendance = () => {
                           <td className="px-3 py-2.5 text-slate-400">{r.lateTimes||'—'}</td>
                           <td className="px-3 py-2.5 text-violet-600 font-medium">{r.otHours>0?r.otHours:'—'}</td>
                           <td className="px-3 py-2.5 text-center">
-                            <button onClick={()=>setLinkTarget(r)} title="Link to registered member"
+                            <button onClick={()=>setLinkTarget(r)}
                               className={`p-1 rounded-lg transition ${linked?'text-emerald-500 hover:bg-emerald-50':'text-amber-500 hover:bg-amber-50'}`}>
                               <Link size={13}/>
                             </button>
@@ -443,19 +434,14 @@ const Attendance = () => {
                   </tbody>
                 </table>
               </div>
+              <PaginationBar page={page} totalPages={totalPages} filteredCount={filtered.length} onPage={setPage} />
             </div>
           </>
         )}
       </div>
 
-      {/* Link Modal */}
       {linkTarget && (
-        <LinkModal
-          record={linkTarget}
-          members={members}
-          onSave={handleLink}
-          onClose={()=>setLinkTarget(null)}
-        />
+        <LinkModal record={linkTarget} members={members} onSave={handleLink} onClose={()=>setLinkTarget(null)} />
       )}
     </div>
   );

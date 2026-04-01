@@ -255,19 +255,24 @@ const DietCard = ({ plan, onEdit, onDelete }) => {
 
 // ── Single exercise row ───────────────────────────────────────────────────────
 const ExerciseRow = ({ ex, index }) => (
-  <div className="flex items-center gap-2 py-2 border-b border-slate-100 last:border-0">
-    <div className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-[9px] font-black text-slate-600 flex-shrink-0">{index + 1}</div>
-    <div className="flex-1 min-w-0">
-      <p className="text-xs font-semibold text-slate-800 truncate">{ex.name}</p>
-      {ex.notes && <p className="text-[10px] text-slate-400 italic truncate">{ex.notes}</p>}
+  <div className="py-2.5 border-b border-slate-100 last:border-0">
+    {/* Row 1: number + exercise name */}
+    <div className="flex items-center gap-2 mb-1.5">
+      <div className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-[9px] font-black text-white flex-shrink-0">
+        {index + 1}
+      </div>
+      <p className="text-xs font-bold text-slate-800">{ex.name || '—'}</p>
     </div>
-    <div className="flex items-center gap-2 flex-shrink-0 text-[10px]">
-      {ex.sets > 0 && <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold">{ex.sets}×</span>}
-      {ex.reps && <span className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-bold">{ex.reps}</span>}
-      {ex.duration && <span className="bg-violet-50 text-violet-700 px-1.5 py-0.5 rounded font-bold">{ex.duration}</span>}
-      {ex.rest && <span className="bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-bold">rest {ex.rest}</span>}
+    {/* Row 2: badges */}
+    <div className="flex items-center gap-1.5 flex-wrap pl-7 text-[10px]">
+      {ex.sets > 0 && <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-md font-bold">{ex.sets}×</span>}
+      {ex.reps && <span className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-md font-bold">{ex.reps}</span>}
+      {ex.duration && <span className="bg-violet-50 text-violet-700 px-1.5 py-0.5 rounded-md font-bold">{ex.duration}</span>}
+      {ex.rest && <span className="bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded-md font-bold">rest {ex.rest}</span>}
       {ex.calories > 0 && <span className="flex items-center gap-0.5 text-orange-600 font-bold"><Flame size={8}/>{ex.calories}</span>}
     </div>
+    {/* Row 3: notes */}
+    {ex.notes && <p className="text-[10px] text-slate-400 italic pl-7 mt-0.5">{ex.notes}</p>}
   </div>
 );
 
@@ -448,7 +453,7 @@ const CSVImportModal = ({ title, subtitle, accentColor, onImport, onClose, downl
   };
 
   const bg = { green:'from-green-600 to-emerald-700', red:'from-red-600 to-rose-700' }[accentColor] || 'from-slate-700 to-slate-900';
-  const ring = { green:'ring-green-400', red:'ring-red-400' }[accentColor] || 'ring-slate-400';
+  const ring= { green:'ring-green-400', red:'ring-red-400' }[accentColor] || 'ring-slate-400';
   const btnBg = { green:'bg-green-600 hover:bg-green-700', red:'bg-red-600 hover:bg-red-700' }[accentColor] || 'bg-slate-700';
 
   return (

@@ -3,12 +3,10 @@ import axios from 'axios';
 import Navbar from '../components/Navbar';
 import { useNavigate } from 'react-router-dom';
 import {
-  Plus, X, Search, Phone, Mail, User, Filter,
+  Plus, X, Search, Filter,
   Edit3, Trash2, Check, ChevronDown, UserPlus,
-  Megaphone, TrendingUp, RefreshCw, Calendar
+  Megaphone, TrendingUp, RefreshCw, ChevronLeft, ChevronRight
 } from 'lucide-react';
-
-const BASE_URL = 'https://wfc-backend-software.onrender.com';
 
 const STATUS_CONFIG = {
   New:        { color: 'bg-blue-100 text-blue-700 border-blue-200',      dot: 'bg-blue-500' },
@@ -21,8 +19,8 @@ const STATUS_CONFIG = {
 const SOURCES  = ['Walk-in', 'Phone', 'Instagram', 'Facebook', 'WhatsApp', 'Referral', 'Google', 'Other'];
 const INTERESTS= ['Weight Loss', 'Muscle Gain', 'Fitness', 'Yoga', 'Cardio', 'Personal Training', 'Other'];
 const STATUSES = Object.keys(STATUS_CONFIG);
+const PER_PAGE = 10;
 
-// ── Add / Edit Lead Modal ─────────────────────────────────────────────────────
 const LeadModal = ({ lead, onSave, onClose }) => {
   const isEdit = !!lead;
   const [form, setForm] = useState({
@@ -41,7 +39,9 @@ const LeadModal = ({ lead, onSave, onClose }) => {
   const [saving, setSaving] = useState(false);
   const [err,    setErr]    = useState('');
 
-  const handleChange = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+  const handleChange = (field) => (e) => {
+    setForm(f => ({ ...f, [field]: e.target.value }));
+  };
 
   const handleSave = async () => {
     if (!form.name.trim() || !form.phone.trim()) {
@@ -62,28 +62,6 @@ const LeadModal = ({ lead, onSave, onClose }) => {
     } finally { setSaving(false); }
   };
 
-  const F = ({ label, name, type = 'text', placeholder, required = false }) => (
-    <div>
-      <label className="block text-xs font-semibold text-slate-500 mb-1">
-        {label}{required && <span className="text-red-500 ml-0.5">*</span>}
-      </label>
-      <input name={name} type={type} value={form[name]} onChange={handleChange}
-        placeholder={placeholder}
-        className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
-    </div>
-  );
-
-  const S = ({ label, name, options }) => (
-    <div>
-      <label className="block text-xs font-semibold text-slate-500 mb-1">{label}</label>
-      <select name={name} value={form[name]} onChange={handleChange}
-        className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
-        <option value="">Select…</option>
-        {options.map(o => <option key={o} value={o}>{o}</option>)}
-      </select>
-    </div>
-  );
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col"
@@ -99,27 +77,90 @@ const LeadModal = ({ lead, onSave, onClose }) => {
 
         <div className="p-5 overflow-y-auto space-y-3 flex-1">
           <div className="grid grid-cols-2 gap-3">
-            <F label="Full Name"   name="name"  placeholder="Name" required />
-            <F label="Phone"       name="phone" placeholder="10-digit" type="tel" required />
-            <F label="Email"       name="email" placeholder="Email (optional)" type="email" />
-            <F label="Age"         name="age"   placeholder="Age" type="number" />
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Full Name<span className="text-red-500 ml-0.5">*</span></label>
+              <input
+                value={form.name}
+                onChange={handleChange('name')}
+                placeholder="Name"
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Phone<span className="text-red-500 ml-0.5">*</span></label>
+              <input
+                value={form.phone}
+                onChange={handleChange('phone')}
+                placeholder="10-digit"
+                type="tel"
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Email</label>
+              <input
+                value={form.email}
+                onChange={handleChange('email')}
+                placeholder="Email (optional)"
+                type="email"
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Age</label>
+              <input
+                value={form.age}
+                onChange={handleChange('age')}
+                placeholder="Age"
+                type="number"
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+              />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <S label="Gender"      name="gender"   options={["Male","Female","Other"]} />
-            <S label="Source"      name="source"   options={SOURCES} />
-            <S label="Interest"    name="interest" options={INTERESTS} />
-            <S label="Status"      name="status"   options={STATUSES} />
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Gender</label>
+              <select value={form.gender} onChange={handleChange('gender')} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
+                <option value="">Select…</option>
+                {["Male","Female","Other"].map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Source</label>
+              <select value={form.source} onChange={handleChange('source')} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
+                <option value="">Select…</option>
+                {SOURCES.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Interest</label>
+              <select value={form.interest} onChange={handleChange('interest')} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
+                <option value="">Select…</option>
+                {INTERESTS.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Status</label>
+              <select value={form.status} onChange={handleChange('status')} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
+                <option value="">Select…</option>
+                {STATUSES.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
           </div>
-          <F label="Follow-up Date" name="followUpDate" type="date" />
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Follow-up Date</label>
+            <input value={form.followUpDate} onChange={handleChange('followUpDate')} type="date"
+              className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+          </div>
           <div>
             <label className="block text-xs font-semibold text-slate-500 mb-1">Message / Query</label>
-            <textarea name="message" value={form.message} onChange={handleChange}
+            <textarea value={form.message} onChange={handleChange('message')}
               placeholder="What is the member asking about?" rows={2}
               className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-500 mb-1">Internal Notes</label>
-            <textarea name="notes" value={form.notes} onChange={handleChange}
+            <textarea value={form.notes} onChange={handleChange('notes')}
               placeholder="Staff notes…" rows={2}
               className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
@@ -139,7 +180,6 @@ const LeadModal = ({ lead, onSave, onClose }) => {
   );
 };
 
-// ── Status quick-change dropdown ──────────────────────────────────────────────
 const StatusBadge = ({ lead, onUpdate }) => {
   const [open, setOpen] = useState(false);
   const cfg = STATUS_CONFIG[lead.status] || STATUS_CONFIG.New;
@@ -167,7 +207,39 @@ const StatusBadge = ({ lead, onUpdate }) => {
   );
 };
 
-// ── Main Leads Page ───────────────────────────────────────────────────────────
+const Pagination = ({ page, totalPages, onPage }) => {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="px-4 py-3 border-t border-slate-50 flex items-center justify-between">
+      <p className="text-xs text-slate-400">Page {page} of {totalPages}</p>
+      <div className="flex items-center gap-1">
+        <button onClick={() => onPage(p => Math.max(1, p - 1))} disabled={page === 1}
+          className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition">
+          <ChevronLeft size={14} className="text-slate-600" />
+        </button>
+        {Array.from({ length: totalPages }, (_, i) => i + 1)
+          .filter(n => n === 1 || n === totalPages || Math.abs(n - page) <= 1)
+          .reduce((acc, n, idx, arr) => {
+            if (idx > 0 && n - arr[idx - 1] > 1) acc.push('…');
+            acc.push(n);
+            return acc;
+          }, [])
+          .map((n, i) => n === '…'
+            ? <span key={`e${i}`} className="px-1 text-slate-400 text-xs">…</span>
+            : <button key={n} onClick={() => onPage(n)}
+                className={`w-7 h-7 rounded-lg text-xs font-semibold transition ${page === n ? 'bg-slate-800 text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                {n}
+              </button>
+          )}
+        <button onClick={() => onPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+          className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition">
+          <ChevronRight size={14} className="text-slate-600" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const Leads = () => {
   const navigate  = useNavigate();
   const [leads,     setLeads]     = useState([]);
@@ -177,8 +249,10 @@ const Leads = () => {
   const [showModal, setShowModal] = useState(false);
   const [editLead,  setEditLead]  = useState(null);
   const [delTarget, setDelTarget] = useState(null);
+  const [page,      setPage]      = useState(1);
 
   useEffect(() => { fetchLeads(); }, []);
+  useEffect(() => { setPage(1); }, [filter, search]);
 
   const fetchLeads = async () => {
     setLoading(true);
@@ -208,6 +282,8 @@ const Leads = () => {
     .filter(l => filter === 'All' || l.status === filter)
     .filter(l => !search || l.name?.toLowerCase().includes(search.toLowerCase()) || l.phone?.includes(search));
 
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+  const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
   const counts = STATUSES.reduce((acc, s) => { acc[s] = leads.filter(l => l.status === s).length; return acc; }, {});
 
   return (
@@ -215,7 +291,6 @@ const Leads = () => {
       <Navbar />
       <div className="max-w-7xl mx-auto px-4 py-6">
 
-        {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
@@ -234,7 +309,6 @@ const Leads = () => {
           </div>
         </div>
 
-        {/* Stats row */}
         <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-5">
           {[
             { label:'Total',    val:leads.length,       color:'text-slate-700', bg:'bg-white' },
@@ -252,7 +326,6 @@ const Leads = () => {
           ))}
         </div>
 
-        {/* Filters + Search */}
         <div className="flex flex-wrap items-center gap-2 mb-4">
           <div className="flex gap-1 bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
             {['All', ...STATUSES].map(s => (
@@ -271,7 +344,6 @@ const Leads = () => {
           </div>
         </div>
 
-        {/* Table */}
         {loading ? (
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center">
             <RefreshCw size={24} className="animate-spin text-slate-300 mx-auto mb-2" />
@@ -279,8 +351,9 @@ const Leads = () => {
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-50">
+            <div className="px-4 py-3 border-b border-slate-50 flex items-center justify-between">
               <p className="text-xs font-bold text-slate-700">{filter === 'All' ? 'All Leads' : filter} · {filtered.length} records</p>
+              <p className="text-xs text-slate-400">Showing {Math.min((page-1)*PER_PAGE+1, filtered.length)}–{Math.min(page*PER_PAGE, filtered.length)} of {filtered.length}</p>
             </div>
             {filtered.length === 0 ? (
               <div className="text-center py-14 text-slate-400">
@@ -299,9 +372,9 @@ const Leads = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
-                    {filtered.map((l, i) => (
+                    {paginated.map((l, i) => (
                       <tr key={l._id} className="hover:bg-slate-50 transition group">
-                        <td className="px-3 py-2.5 text-slate-400 font-mono text-[10px]">{i + 1}</td>
+                        <td className="px-3 py-2.5 text-slate-400 font-mono text-[10px]">{(page-1)*PER_PAGE + i + 1}</td>
                         <td className="px-3 py-2.5">
                           <p className="font-semibold text-slate-800 whitespace-nowrap">{l.name}</p>
                           {l.email && <p className="text-[10px] text-slate-400">{l.email}</p>}
@@ -323,7 +396,7 @@ const Leads = () => {
                               className="p-1.5 rounded-lg bg-blue-50 text-blue-500 hover:bg-blue-100 transition" title="Edit">
                               <Edit3 size={12} />
                             </button>
-                            {l.status === 'Interested' || l.status === 'Converted' ? (
+                            {(l.status === 'Interested' || l.status === 'Converted') ? (
                               <button onClick={() => navigate('/register')}
                                 className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition" title="Convert to Member">
                                 <UserPlus size={12} />
@@ -341,16 +414,15 @@ const Leads = () => {
                 </table>
               </div>
             )}
+            <Pagination page={page} totalPages={totalPages} onPage={setPage} />
           </div>
         )}
       </div>
 
-      {/* Add/Edit Modal */}
       {showModal && (
         <LeadModal lead={editLead} onSave={fetchLeads} onClose={() => { setShowModal(false); setEditLead(null); }} />
       )}
 
-      {/* Delete confirm */}
       {delTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setDelTarget(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center" onClick={e => e.stopPropagation()}>

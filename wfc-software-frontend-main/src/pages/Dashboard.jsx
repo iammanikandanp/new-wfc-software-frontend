@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
@@ -8,9 +8,6 @@ import {
   Plus, Activity, RefreshCw, Edit3, Trash2, Megaphone
 } from 'lucide-react';
 
-const BASE_URL = 'https://wfc-backend-software.onrender.com';
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 const getMemberStatus = (endDate) => {
   if (!endDate) return 'expired';
   const diff = Math.ceil((new Date(endDate) - new Date()) / 86400000);
@@ -21,121 +18,6 @@ const getMemberStatus = (endDate) => {
 const isThisMonth = (d) => { if (!d) return false; const t = new Date(d), n = new Date(); return t.getMonth()===n.getMonth()&&t.getFullYear()===n.getFullYear(); };
 const isLastMonth = (d) => { if (!d) return false; const t = new Date(d), n = new Date(), l=new Date(n.getFullYear(),n.getMonth()-1,1); return t.getMonth()===l.getMonth()&&t.getFullYear()===l.getFullYear(); };
 
-// ── 3-Group Bar Chart (New Joined / Active / Expired) ────────────────────────
-const BarChart = ({ lA, tA, lE, tE, lN, tN }) => {
-  // 3 groups: New Joined, Active, Expired
-  const groups = [
-    { label:'New Joined', lVal:lN||0, tVal:tN||0, lColor:'#bfdbfe', tColor:'#2563eb', textColor:'#1d4ed8', dot:'#2563eb' },
-    { label:'Active',     lVal:lA,    tVal:tA,    lColor:'#bbf7d0', tColor:'#16a34a', textColor:'#15803d', dot:'#16a34a' },
-    { label:'Expired',    lVal:lE,    tVal:tE,    lColor:'#fecdd3', tColor:'#dc2626', textColor:'#b91c1c', dot:'#dc2626' },
-  ];
-
-  const maxV = Math.max(lN||0, tN||0, lA, tA, lE, tE, 1);
-  const yMax = maxV <= 5 ? 5 : maxV <= 10 ? 10 : Math.ceil(maxV / 5) * 5;
-  const H = 110, W = 420;
-  const bW = 16, bGap = 4;         // each bar width & gap within group
-  const groupW = bW * 2 + bGap;    // total group width
-  const groupGap = 42;             // space between groups
-  const sX = 34;                   // left margin
-
-  const totalGroupsW = groups.length * groupW + (groups.length - 1) * groupGap;
-  const chartW = W - sX - 16;
-  const startOffset = (chartW - totalGroupsW) / 2; // center groups
-
-  const yTicks = [0, yMax * 0.5, yMax];
-
-  return (
-    <svg width="100%" viewBox={`0 0 ${W} ${H + 46}`} className="overflow-visible">
-      <defs>
-        <style>{`
-          @keyframes barUp { from{transform:scaleY(0);opacity:0} to{transform:scaleY(1);opacity:1} }
-          @keyframes fadeUp{ from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
-        `}</style>
-      </defs>
-
-      {/* Chart background */}
-      <rect x={sX} y={0} width={W - sX - 8} height={H} fill="#f8fafc" rx="8"/>
-
-      {/* Y grid + labels */}
-      {yTicks.map((v, i) => {
-        const y = H - (v / yMax) * H;
-        return (
-          <g key={i}>
-            <line x1={sX} x2={W - 8} y1={y} y2={y}
-              stroke={v === 0 ? '#cbd5e1' : '#e2e8f0'}
-              strokeWidth={v === 0 ? 1.5 : 1}
-              strokeDasharray={v === 0 ? undefined : '5 4'}/>
-            <text x={sX - 6} y={y + 4} textAnchor="end" fontSize="9" fill="#94a3b8" fontWeight="500">
-              {Math.round(v)}
-            </text>
-          </g>
-        );
-      })}
-
-      {/* Bars */}
-      {groups.map((g, gi) => {
-        const gx = sX + startOffset + gi * (groupW + groupGap);
-        const lH = Math.max((g.lVal / yMax) * H, g.lVal > 0 ? 5 : 0);
-        const tH = Math.max((g.tVal / yMax) * H, g.tVal > 0 ? 5 : 0);
-        const delay = gi * 0.12;
-
-        return (
-          <g key={gi}>
-            {/* Last Month — light */}
-            <rect x={gx} y={H - lH} width={bW} height={lH} fill={g.lColor}
-              rx="4 4 2 2"
-              style={{ transformOrigin: `${gx + bW / 2}px ${H}px`, animation: `barUp 0.65s cubic-bezier(.22,1,.36,1) ${delay}s both` }}/>
-            {g.lVal > 0 && (
-              <text x={gx + bW / 2} y={H - lH - 5} textAnchor="middle"
-                fontSize="9" fill="#94a3b8" fontWeight="500"
-                style={{ animation: `fadeUp 0.4s ease ${delay + 0.55}s both` }}>
-                {g.lVal}
-              </text>
-            )}
-
-            {/* This Month — saturated */}
-            <rect x={gx + bW + bGap} y={H - tH} width={bW} height={tH} fill={g.tColor}
-              rx="4 4 2 2"
-              style={{ transformOrigin: `${gx + bW + bGap + bW / 2}px ${H}px`, animation: `barUp 0.65s cubic-bezier(.22,1,.36,1) ${delay + 0.08}s both` }}/>
-            {g.tVal > 0 && (
-              <text x={gx + bW + bGap + bW / 2} y={H - tH - 5} textAnchor="middle"
-                fontSize="10" fill={g.textColor} fontWeight="700"
-                style={{ animation: `fadeUp 0.4s ease ${delay + 0.63}s both` }}>
-                {g.tVal}
-              </text>
-            )}
-
-            {/* Group label */}
-            <text x={gx + groupW / 2} y={H + 15} textAnchor="middle"
-              fontSize="9.5" fontWeight="600" fill="#475569">
-              {g.label}
-            </text>
-
-            {/* Dot under label matching group color */}
-            <circle cx={gx + groupW / 2} cy={H + 23} r="3" fill={g.dot} opacity="0.7"/>
-          </g>
-        );
-      })}
-
-      {/* Legend — bottom centre */}
-      {(() => {
-        const lx = W / 2 - 68;
-        return (
-          <g transform={`translate(${lx}, ${H + 32})`}>
-            <rect width={8} height={8} fill="#e2e8f0" rx="2"/>
-            <rect x={9} width={8} height={8} fill="#475569" rx="2"/>
-            <text x={21} y={7.5} fontSize="8" fill="#64748b">Last Month</text>
-            <rect x={82} width={8} height={8} fill="#f0fdf4" rx="2" stroke="#86efac" strokeWidth="1"/>
-            <rect x={91} width={8} height={8} fill="#16a34a" rx="2"/>
-            <text x={103} y={7.5} fontSize="8" fill="#64748b">This Month</text>
-          </g>
-        );
-      })()}
-    </svg>
-  );
-};
-
-// ── Member Modal ──────────────────────────────────────────────────────────────
 const MemberModal = ({ title, members, color, onClose }) => {
   const navigate = useNavigate();
   return (
@@ -173,24 +55,20 @@ const MemberModal = ({ title, members, color, onClose }) => {
   );
 };
 
-// ── Add Reminder Modal ────────────────────────────────────────────────────────
 const AddReminderModal = ({ onSave, onClose }) => {
   const [text, setText] = useState('');
-  const [type, setType] = useState('note'); // note | urgent | diet | payment
-
+  const [type, setType] = useState('note');
   const TYPES = [
     { id: 'note',    label: '📝 Note',    color: 'bg-blue-100 text-blue-700 border-blue-300' },
     { id: 'urgent',  label: '🚨 Urgent',  color: 'bg-red-100 text-red-700 border-red-300' },
     { id: 'diet',    label: '🥗 Diet',    color: 'bg-green-100 text-green-700 border-green-300' },
     { id: 'payment', label: '💰 Payment', color: 'bg-amber-100 text-amber-700 border-amber-300' },
   ];
-
   const save = () => {
     if (!text.trim()) return;
     onSave({ id: Date.now().toString(), text: text.trim(), type, createdAt: new Date().toISOString() });
     onClose();
   };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={e=>e.stopPropagation()} style={{animation:'su .2s ease'}}>
@@ -199,7 +77,6 @@ const AddReminderModal = ({ onSave, onClose }) => {
           <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-100"><X size={15}/></button>
         </div>
         <div className="p-5 space-y-4">
-          {/* Type selector */}
           <div>
             <p className="text-xs font-semibold text-slate-500 mb-2">Type</p>
             <div className="grid grid-cols-2 gap-2">
@@ -211,19 +88,10 @@ const AddReminderModal = ({ onSave, onClose }) => {
               ))}
             </div>
           </div>
-          {/* Text */}
           <div>
             <p className="text-xs font-semibold text-slate-500 mb-2">Note</p>
-            <textarea
-              value={text}
-              onChange={e=>setText(e.target.value)}
-              onKeyDown={e=>{if(e.key==='Enter'&&e.metaKey)save();}}
-              autoFocus
-              rows={3}
-              placeholder="e.g. Call Ravi for renewal, Prepare diet for Priya..."
-              className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-400"
-            />
-            <p className="text-[10px] text-slate-400 mt-1">Cmd+Enter to save</p>
+            <textarea value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&e.metaKey)save();}} autoFocus rows={3}
+              placeholder="e.g. Call Ravi for renewal..." className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-400"/>
           </div>
           <div className="flex gap-2">
             <button onClick={onClose} className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-50 transition">Cancel</button>
@@ -235,7 +103,6 @@ const AddReminderModal = ({ onSave, onClose }) => {
   );
 };
 
-// ── Reminder colors ───────────────────────────────────────────────────────────
 const RC = {
   note:    { bg:'bg-blue-50',   border:'border-blue-200',   icon:'text-blue-500',   title:'text-blue-800' },
   urgent:  { bg:'bg-red-50',    border:'border-red-200',    icon:'text-red-500',    title:'text-red-800'  },
@@ -245,7 +112,140 @@ const RC = {
 };
 const TYPE_ICON = { note: Edit3, urgent: AlertTriangle, diet: Salad, payment: Wallet, auto: Bell };
 
-// ── Main Dashboard ────────────────────────────────────────────────────────────
+const LineChart = ({ members }) => {
+  const canvasRef = useRef(null);
+  const chartRef  = useRef(null);
+
+  useEffect(() => {
+    if (!canvasRef.current || !members.length) return;
+
+    const now  = new Date();
+    const days = Array.from({ length: 28 }, (_, i) => {
+      const d = new Date(now);
+      d.setDate(now.getDate() - (27 - i));
+      return d;
+    });
+
+    const getCount = (daysArr, monthOffset, field) => {
+      return daysArr.map(day => {
+        const target = new Date(day);
+        target.setMonth(target.getMonth() + monthOffset);
+        return members.filter(m => {
+          const val = m[field];
+          if (!val) return false;
+          const d = new Date(val);
+          return d.getDate() === target.getDate() &&
+                 d.getMonth() === target.getMonth() &&
+                 d.getFullYear() === target.getFullYear();
+        }).length;
+      });
+    };
+
+    const thisMonthJoined = getCount(days, 0, 'createdAt');
+    const lastMonthJoined = getCount(days, -1, 'createdAt');
+
+    const labels = days.map(d => {
+      const day = d.getDate();
+      return day === 1 || day % 7 === 0 ? `${d.getDate()}` : '';
+    });
+
+    if (chartRef.current) { chartRef.current.destroy(); }
+
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+
+    chartRef.current = new window.Chart(canvasRef.current, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'This Month',
+            data: thisMonthJoined,
+            borderColor: '#dc2626',
+            backgroundColor: 'rgba(220,38,38,0.08)',
+            borderWidth: 2.5,
+            pointRadius: 3,
+            pointBackgroundColor: '#dc2626',
+            tension: 0.4,
+            fill: true,
+          },
+          {
+            label: 'Last Month',
+            data: lastMonthJoined,
+            borderColor: '#94a3b8',
+            backgroundColor: 'rgba(148,163,184,0.06)',
+            borderWidth: 2,
+            pointRadius: 2,
+            pointBackgroundColor: '#94a3b8',
+            tension: 0.4,
+            fill: true,
+            borderDash: [5, 3],
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1e293b',
+            titleColor: '#fff',
+            bodyColor: '#94a3b8',
+            padding: 10,
+            callbacks: {
+              label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y} new members`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { size: 11 }, maxRotation: 0 },
+          },
+          y: {
+            beginAtZero: true,
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { size: 11 }, stepSize: 1, precision: 0 },
+          },
+        },
+      },
+    });
+
+    return () => { if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null; } };
+  }, [members]);
+
+  const now = new Date();
+  const lm  = new Date(now.getFullYear(), now.getMonth()-1, 1);
+  const tmName = now.toLocaleString('en-IN',{month:'long'});
+  const lmName = lm.toLocaleString('en-IN',{month:'long'});
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <p className="font-bold text-slate-800 text-sm">📈 New Members — Day by Day</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">Comparing daily joins: {lmName} vs {tmName}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1.5 text-xs text-slate-500">
+            <span className="w-6 h-0.5 bg-red-600 inline-block rounded"></span> {tmName}
+          </span>
+          <span className="flex items-center gap-1.5 text-xs text-slate-400">
+            <span className="w-6 border-t-2 border-dashed border-slate-400 inline-block"></span> {lmName}
+          </span>
+        </div>
+      </div>
+      <div style={{ position: 'relative', height: '180px' }}>
+        <canvas ref={canvasRef} />
+      </div>
+    </div>
+  );
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [members,  setMembers]  = useState([]);
@@ -255,8 +255,8 @@ const Dashboard = () => {
   const [loading,  setLoading]  = useState(true);
   const [modal,    setModal]    = useState(null);
   const [showAddReminder, setShowAddReminder] = useState(false);
+  const [chartReady, setChartReady] = useState(false);
 
-  // Manual reminders stored in localStorage
   const [manualNotes, setManualNotes] = useState(() => {
     try { return JSON.parse(localStorage.getItem('wfc_manual_notes')||'[]'); } catch { return []; }
   });
@@ -264,7 +264,17 @@ const Dashboard = () => {
     try { return JSON.parse(localStorage.getItem('wfc_dismissed')||'[]'); } catch { return []; }
   });
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => {
+    fetchAll();
+    if (!window.Chart) {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js';
+      s.onload = () => setChartReady(true);
+      document.head.appendChild(s);
+    } else {
+      setChartReady(true);
+    }
+  }, []);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -283,7 +293,6 @@ const Dashboard = () => {
     finally { setLoading(false); }
   };
 
-  // computed
   const activeM   = members.filter(m=>getMemberStatus(m.endDate)==='active');
   const expiringM = members.filter(m=>getMemberStatus(m.endDate)==='expiring');
   const expiredM  = members.filter(m=>getMemberStatus(m.endDate)==='expired');
@@ -293,37 +302,27 @@ const Dashboard = () => {
 
   const tMA=members.filter(m=>isThisMonth(m.startDate)&&getMemberStatus(m.endDate)==='active').length;
   const lMA=members.filter(m=>isLastMonth(m.startDate)&&getMemberStatus(m.endDate)==='active').length;
-  const tME=members.filter(m=>isThisMonth(m.endDate)&&getMemberStatus(m.endDate)==='expired').length;
-  const lME=members.filter(m=>isLastMonth(m.endDate)&&getMemberStatus(m.endDate)==='expired').length;
   const newThisMonth=members.filter(m=>isThisMonth(m.createdAt)).length;
-  const lMN=members.filter(m=>isLastMonth(m.createdAt)).length;
 
-  // Auto reminders
   const autoReminders = [];
   const crit=members.filter(m=>{ const d=Math.ceil((new Date(m.endDate)-new Date())/86400000); return d>=0&&d<=3; });
   if(crit.length>0) autoReminders.push({ id:'exp3d', type:'urgent', text:`${crit.length} member${crit.length>1?'s':''} expiring in 3 days: ${crit.slice(0,2).map(m=>m.name).join(', ')}${crit.length>2?` +${crit.length-2} more`:''}`, auto:true, action:{label:'Collect Renewal',fn:()=>navigate('/payments/new')}});
-  if(balanceM.length>0) autoReminders.push({ id:'bal', type:'payment', text:`${balanceM.length} member${balanceM.length>1?'s have':' has'} pending balance: ${balanceM.slice(0,2).map(m=>`${m.name} ₹${m.balanceAmount}`).join(', ')}`, auto:true, action:{label:'Collect Now',fn:()=>navigate('/payments/new')}});
+  if(balanceM.length>0) autoReminders.push({ id:'bal', type:'payment', text:`${balanceM.length} member${balanceM.length>1?'s have':' has'} pending balance.`, auto:true, action:{label:'Collect Now',fn:()=>navigate('/payments/new')}});
   const dietIds=new Set(dietPlans.map(d=>String(d.registrationId)));
   const noDiet=activeM.filter(m=>!dietIds.has(String(m._id)));
-  if(noDiet.length>0) autoReminders.push({ id:'nodiet', type:'diet', text:`${noDiet.length} active member${noDiet.length>1?'s':''} have no diet plan: ${noDiet.slice(0,2).map(m=>m.name).join(', ')}${noDiet.length>2?` +${noDiet.length-2} more`:''}`, auto:true, action:{label:'Create Diet',fn:()=>navigate('/diet-plans/new')}});
+  if(noDiet.length>0) autoReminders.push({ id:'nodiet', type:'diet', text:`${noDiet.length} active member${noDiet.length>1?'s':''} have no diet plan.`, auto:true, action:{label:'Create Diet',fn:()=>navigate('/diet-plans/new')}});
 
   const allReminders = [...autoReminders.filter(r=>!dismissed.includes(r.id)), ...manualNotes];
 
-  const dismiss = (id) => {
-    const u=[...dismissed,id]; setDismissed(u); localStorage.setItem('wfc_dismissed',JSON.stringify(u));
-  };
-  const deleteManual = (id) => {
-    const u=manualNotes.filter(n=>n.id!==id); setManualNotes(u); localStorage.setItem('wfc_manual_notes',JSON.stringify(u));
-  };
-  const saveManual = (note) => {
-    const u=[note,...manualNotes]; setManualNotes(u); localStorage.setItem('wfc_manual_notes',JSON.stringify(u));
-  };
+  const dismiss = (id) => { const u=[...dismissed,id]; setDismissed(u); localStorage.setItem('wfc_dismissed',JSON.stringify(u)); };
+  const deleteManual = (id) => { const u=manualNotes.filter(n=>n.id!==id); setManualNotes(u); localStorage.setItem('wfc_manual_notes',JSON.stringify(u)); };
+  const saveManual = (note) => { const u=[note,...manualNotes]; setManualNotes(u); localStorage.setItem('wfc_manual_notes',JSON.stringify(u)); };
 
   const CARDS = [
     { emoji:'👥', title:'Total',    value:members.length,   sub:`+${newThisMonth} new`,   gradient:'from-slate-700 to-slate-900',    list:members,   lc:{hBg:'bg-slate-800 text-white',hTxt:'text-white'} },
     { emoji:'💪', title:'Active',   value:activeM.length,   sub:`${tMA} this month`,      gradient:'from-emerald-500 to-green-700',  list:activeM,   lc:{hBg:'bg-emerald-600 text-white',hTxt:'text-white'} },
     { emoji:'⏳', title:'Expiring', value:expiringM.length, sub:'Within 7 days',          gradient:'from-amber-400 to-orange-500',   list:expiringM, lc:{hBg:'bg-amber-500 text-white',hTxt:'text-white'} },
-    { emoji:'❌', title:'Expired',  value:expiredM.length,  sub:`${tME} this month`,      gradient:'from-red-500 to-rose-700',       list:expiredM,  lc:{hBg:'bg-red-600 text-white',hTxt:'text-white'} },
+    { emoji:'❌', title:'Expired',  value:expiredM.length,  sub:`This month`,             gradient:'from-red-500 to-rose-700',       list:expiredM,  lc:{hBg:'bg-red-600 text-white',hTxt:'text-white'} },
     { emoji:'💰', title:'Pending',  value:balanceM.length,  sub:balanceM.length>0?`₹${balanceM.reduce((s,m)=>s+m.balanceAmount,0).toLocaleString('en-IN')}`:'All clear', gradient:'from-violet-500 to-purple-700', list:balanceM, lc:{hBg:'bg-violet-600 text-white',hTxt:'text-white'} },
   ];
 
@@ -332,7 +331,6 @@ const Dashboard = () => {
       <Navbar/>
       <div className="max-w-7xl mx-auto px-4 py-5">
 
-        {/* Header — compact */}
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-lg font-bold text-slate-900">
@@ -346,7 +344,6 @@ const Dashboard = () => {
           </button>
         </div>
 
-        {/* Stat Cards — compact */}
         <div className="grid grid-cols-5 gap-2.5 mb-4">
           {loading ? [...Array(5)].map((_,i)=>(
             <div key={i} className="h-20 rounded-xl bg-white animate-pulse border border-slate-100"/>
@@ -363,38 +360,19 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {/* Chart + Reminders */}
+        {/* LINE CHART + REMINDERS */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
 
-          {/* Chart */}
+          {/* Line Chart */}
           <div className="lg:col-span-2 bg-white rounded-xl border border-slate-100 shadow-sm p-4">
-            {/* Chart header */}
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <p className="font-bold text-slate-800 text-sm">📊 Member Activity</p>
-                <p className="text-[10px] text-slate-400 mt-0.5">
-                  {(() => {
-                    const now = new Date();
-                    const lm = new Date(now.getFullYear(), now.getMonth()-1, 1);
-                    const lmName = lm.toLocaleString('en-IN',{month:'short'});
-                    const tmName = now.toLocaleString('en-IN',{month:'short'});
-                    return <><span className="font-semibold text-slate-500">{lmName}</span> vs <span className="font-semibold text-slate-500">{tmName}</span> · New Joined / Active / Expired</>;
-                  })()}
-                </p>
-              </div>
-              <span className={`flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-xl ${
-                tMA>lMA?'bg-emerald-50 text-emerald-700':tMA<lMA?'bg-red-50 text-red-600':'bg-slate-50 text-slate-500'
-              }`}>
-                <Activity size={10}/>
-                {tMA>lMA?`↑ ${tMA-lMA} more active`:tMA<lMA?`↓ ${lMA-tMA} less active`:'No change'}
-              </span>
-            </div>
-
-            {/* Chart */}
-            <BarChart lA={lMA} tA={tMA} lE={lME} tE={tME} lN={lMN} tN={newThisMonth}/>
-
+            {chartReady && members.length > 0
+              ? <LineChart members={members} />
+              : <div className="h-48 flex items-center justify-center text-slate-300 text-sm">
+                  {loading ? 'Loading chart…' : 'No member data yet'}
+                </div>
+            }
             {/* Summary stats row */}
-            <div className="grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-slate-50">
+            <div className="grid grid-cols-4 gap-2 mt-4 pt-3 border-t border-slate-50">
               {[
                 {label:'New Joined',  val:newThisMonth,    c:'text-blue-600',    bg:'bg-blue-50',    emoji:'🆕'},
                 {label:'Active Now',  val:activeM.length,  c:'text-emerald-600', bg:'bg-emerald-50', emoji:'✅'},
@@ -412,31 +390,19 @@ const Dashboard = () => {
 
           {/* Reminders */}
           <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex flex-col min-h-0">
-            {/* Reminder header */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-1.5">
                 <Bell size={13} className="text-slate-500"/>
                 <p className="font-bold text-slate-900 text-xs">Reminders</p>
-                {allReminders.filter(r=>r.type==='urgent'||r.auto).length>0&&(
-                  <span className="w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">
-                    {allReminders.length}
-                  </span>
-                )}
+                {allReminders.length>0&&<span className="w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">{allReminders.length}</span>}
               </div>
-              {/* + Add button */}
-              <button onClick={()=>setShowAddReminder(true)}
-                className="flex items-center gap-1 bg-slate-800 text-white px-2.5 py-1 rounded-lg text-[11px] font-semibold hover:bg-slate-700 transition">
+              <button onClick={()=>setShowAddReminder(true)} className="flex items-center gap-1 bg-slate-800 text-white px-2.5 py-1 rounded-lg text-[11px] font-semibold hover:bg-slate-700 transition">
                 <Plus size={11}/> Add
               </button>
             </div>
-
-            {/* Reminder list */}
             <div className="flex flex-col gap-2 flex-1 overflow-y-auto max-h-52">
               {allReminders.length===0 ? (
-                <div className="text-center py-6 text-slate-400">
-                  <CheckCircle size={22} className="mx-auto mb-1.5 text-emerald-400"/>
-                  <p className="text-[11px]">All clear! No reminders.</p>
-                </div>
+                <div className="text-center py-6 text-slate-400"><CheckCircle size={22} className="mx-auto mb-1.5 text-emerald-400"/><p className="text-[11px]">All clear! No reminders.</p></div>
               ) : allReminders.map(r => {
                 const rc = RC[r.type] || RC.auto;
                 const RIcon = TYPE_ICON[r.type] || Bell;
@@ -445,38 +411,24 @@ const Dashboard = () => {
                     <RIcon size={13} className={`${rc.icon} flex-shrink-0 mt-0.5`}/>
                     <div className="flex-1 min-w-0">
                       <p className={`text-[11px] font-semibold leading-snug ${rc.title}`}>{r.text}</p>
-                      {r.action&&(
-                        <button onClick={r.action.fn} className={`text-[10px] font-bold underline underline-offset-1 mt-1 ${rc.title}`}>
-                          {r.action.label} →
-                        </button>
-                      )}
+                      {r.action&&<button onClick={r.action.fn} className={`text-[10px] font-bold underline underline-offset-1 mt-1 ${rc.title}`}>{r.action.label} →</button>}
                       {!r.auto&&<p className="text-[9px] text-slate-400 mt-0.5">{new Date(r.createdAt).toLocaleDateString('en-IN')}</p>}
                     </div>
-                    <button
-                      onClick={()=>r.auto?dismiss(r.id):deleteManual(r.id)}
-                      className="opacity-0 group-hover:opacity-100 transition p-0.5 rounded hover:bg-black/10">
+                    <button onClick={()=>r.auto?dismiss(r.id):deleteManual(r.id)} className="opacity-0 group-hover:opacity-100 transition p-0.5 rounded hover:bg-black/10">
                       <X size={11} className="text-slate-400"/>
                     </button>
                   </div>
                 );
               })}
             </div>
-
-            {dismissed.length>0&&(
-              <button onClick={()=>{setDismissed([]);localStorage.removeItem('wfc_dismissed');}}
-                className="mt-2 text-[10px] text-slate-400 hover:text-slate-600 transition text-center">
-                Restore dismissed auto-reminders
-              </button>
-            )}
+            {dismissed.length>0&&<button onClick={()=>{setDismissed([]);localStorage.removeItem('wfc_dismissed');}} className="mt-2 text-[10px] text-slate-400 hover:text-slate-600 transition text-center">Restore dismissed</button>}
           </div>
         </div>
 
-        {/* Leads mini strip */}
+        {/* Leads strip */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl p-4 mb-4 flex items-center gap-4 cursor-pointer hover:shadow-lg transition"
           onClick={() => navigate('/leads')}>
-          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
-            <Megaphone size={20} />
-          </div>
+          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0"><Megaphone size={20} /></div>
           <div className="flex-1">
             <p className="font-bold text-sm">Leads & Enquiries</p>
             <p className="text-xs opacity-70">Track gym enquiries and convert to members</p>
@@ -496,7 +448,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Quick Actions — full style */}
+        {/* Quick Actions */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
           <h2 className="font-bold text-slate-900 text-sm mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -508,8 +460,7 @@ const Dashboard = () => {
             ].map(({ label, icon: Icon, color, fn }) => (
               <button key={label} onClick={fn}
                 className={`flex items-center gap-2.5 px-4 py-3 ${color} text-white rounded-xl text-sm font-semibold transition-all active:scale-95 shadow-sm`}>
-                <Icon size={16} />
-                {label}
+                <Icon size={16} />{label}
               </button>
             ))}
           </div>
